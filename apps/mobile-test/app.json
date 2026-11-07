@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "WallScan",
+    "slug": "wallscan-test",
+    "version": "0.1.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#161616",
+    "primaryColor": "#B08D57",
+    "newArchEnabled": false,
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#161616",
+      "translucent": false
+    },
+    "androidNavigationBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#161616"
+    },
+    "android": {
+      "package": "com.nlpgenerator.wallscan.test",
+      "versionCode": 1,
+      "permissions": ["android.permission.CAMERA"],
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#161616"
+      },
+      "allowBackup": false,
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "ios": {
+      "bundleIdentifier": "com.nlpgenerator.wallscan.test",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Photographier le mur du client pour y visualiser un papier peint.",
+        "NSPhotoLibraryUsageDescription": "Importer une photo du mur du client."
+      }
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#161616"
+        }
+      ],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
+        }
+      ]
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "WallScan", "version": "0.0.1", "identifier": "com.nlpgenerator.wallscan",
+  "build": { "beforeDevCommand": "pnpm dev:web", "devUrl": "http://localhost:1420", "beforeBuildCommand": "vite build", "frontendDist": "../dist" },
+  "app": { "windows": [{ "title": "WallScan", "width": 1400, "height": 900, "fullscreen": false }],
+           "security": { "csp": "default-src 'self'; img-src 'self' blob: data: https:; style-src 'self' 'unsafe-inline'" } },
+  "bundle": { "active": true, "targets": ["msi", "nsis", "dmg"] }
+}

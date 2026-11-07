@@ -1,0 +1,18 @@
+{
+  "name": "@wallscan/crm-adapter-webhook",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Adaptateur GenericWebhook Zapier/Make/n8n (Phase 3)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": { "@wallscan/crm-core": "workspace:*" },
+  "devDependencies": { "typescript": "^5.7.2", "vitest": "^2.1.8", "@vitest/coverage-v8": "^2.1.8" }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "@wallscan/mobile-test",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Version de test installable (APK) du prototype WallScan : le prototype web autonome dans une WebView plein écran.",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "expo start",
+    "dev:go": "expo start --go",
+    "android": "expo run:android",
+    "prebuild:proto": "node ../../scripts/build-prototype.mjs",
+    "assets": "node ../../scripts/gen-mobile-assets.mjs",
+    "build": "node ../../scripts/build-prototype.mjs",
+    "build:apk": "eas build -p android --profile preview",
+    "build:apk:local": "eas build -p android --profile preview --local",
+    "build:dev": "eas build -p android --profile development",
+    "build:aab": "eas build -p android --profile production",
+    "typecheck": "tsc --noEmit",
+    "doctor": "expo-doctor",
+    "eas-build-pre-install": "node ../../scripts/build-prototype.mjs",
+    "ios": "expo run:ios"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.25.0",
+    "expo": "~52.0.49",
+    "expo-clipboard": "~7.0.1",
+    "expo-dev-client": "~5.0.20",
+    "expo-screen-orientation": "~8.0.4",
+    "expo-splash-screen": "~0.29.24",
+    "expo-status-bar": "~2.0.1",
+    "expo-system-ui": "~4.0.9",
+    "react": "18.3.1",
+    "react-native": "0.76.9",
+    "react-native-webview": "13.12.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/react": "~18.3.12",
+    "typescript": "^5.7.2"
+  }
+}

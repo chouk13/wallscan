@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WallScan — SOUFFLET décoration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0F1114;--panel:#171A1F;--panel2:#1F2329;--line:#2A2F37;--text:#F3F1EC;--muted:#9AA0A8;--gold:#C9A061;--gold2:#E3C58C;--ok:#49B37A;--warn:#E0A33C;--danger:#E05C5C;--r:18px;--sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.35;overflow:hidden}
+  .screen{position:fixed;inset:0;display:none;flex-direction:column;overflow:hidden}
+  .screen.active{display:flex}
+  .serif{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;letter-spacing:.02em}
+  button{font-family:inherit}
+  .btn{border:0;border-radius:14px;padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;min-height:52px;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--gold);color:#1A1407}
+  .btn.ghost{background:rgba(255,255,255,.08);color:var(--text);border:1px solid var(--line)}
+  .btn.block{width:100%}
+  .btn:disabled{opacity:.4}
+  .fab{position:fixed;right:18px;bottom:calc(18px + var(--sab));width:58px;height:58px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:20;cursor:pointer}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:calc(10px + var(--sat)) 16px 10px;background:linear-gradient(var(--bg),rgba(15,17,20,.85));z-index:5}
+  .topbar .t{font-size:17px;font-weight:600}
+  .topbar .back{background:none;border:0;color:var(--gold2);font-size:15px;padding:8px 0;cursor:pointer}
+  .brandline{font-size:11px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+  .pad{padding:0 16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+  .scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(96px + var(--sab))}
+  .muted{color:var(--muted);font-size:13px}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:rgba(201,160,97,.14);color:var(--gold2);border:1px solid rgba(201,160,97,.35);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chips button{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:9px 14px;font-size:14px;cursor:pointer}
+  .chips button.sel{background:var(--gold);color:#1A1407;border-color:var(--gold)}
+  input[type=number],input[type=text],input[type=search]{font:inherit;font-size:16px;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:12px;width:100%}
+  label.f{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);flex:1}
+  .row{display:flex;gap:10px;align-items:center}
+  /* HOME */
+  #home{background:#000}
+  .viewfinder{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 30%,#2a2d33 0%,#101216 60%,#000 100%)}
+  .viewfinder .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);background-size:33.33% 33.33%}
+  .viewfinder .corner{position:absolute;width:48px;height:48px;border:3px solid rgba(255,255,255,.75)}
+  .viewfinder .hint{position:absolute;left:0;right:0;top:calc(12% + var(--sat));text-align:center;color:rgba(255,255,255,.85);font-size:14px}
+  .homehead{position:absolute;left:0;right:0;top:calc(14px + var(--sat));text-align:center;z-index:2}
+  .homehead .serif{font-size:30px;color:#fff}
+  .homecards{position:absolute;left:0;right:0;bottom:calc(16px + var(--sab));padding:0 16px;display:grid;gap:12px;z-index:3}
+  .hcard{border-radius:22px;padding:18px 18px;display:flex;align-items:center;gap:16px;border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);cursor:pointer;text-align:left;color:#fff;font:inherit}
+  .hcard.primary{background:linear-gradient(135deg,rgba(201,160,97,.95),rgba(176,130,66,.95));color:#1A1407;border-color:rgba(255,255,255,.3)}
+  .hcard.secondary{background:rgba(23,26,31,.75)}
+  .hcard .ico{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;background:rgba(0,0,0,.18)}
+  .hcard b{display:block;font-size:17px}
+  .hcard small{opacity:.8;font-size:12.5px}
+  /* ANALYZE */
+  .stage{position:relative;width:100%;background:#000;overflow:hidden;touch-action:none;user-select:none}
+  .stage img.photo{display:block;width:100%;height:auto}
+  .layer{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none}
+  .handle{position:absolute;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:rgba(201,160,97,.95);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);z-index:3;touch-action:none}
+  .handle.ref{background:rgba(73,179,122,.95);width:28px;height:28px;margin:-14px 0 0 -14px}
+  svg.ov{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2}
+  .scan{position:absolute;inset:0;z-index:4;pointer-events:none;display:none}
+  .scan.on{display:block}
+  .scan .line{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold2),transparent);box-shadow:0 0 18px var(--gold);animation:scan 1.5s ease-in-out infinite}
+  .scan .lbl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.6);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600}
+  @keyframes scan{0%{top:4%}50%{top:94%}100%{top:4%}}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .kpi{background:var(--panel2);border-radius:14px;padding:12px;text-align:center}
+  .kpi b{display:block;font-size:22px;color:var(--gold2)}
+  .kpi small{color:var(--muted);font-size:11px}
+  .conf{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(224,163,60,.12);color:var(--warn);font-weight:600;font-size:13px}
+  .conf.ok{background:rgba(73,179,122,.12);color:var(--ok)}
+  .opening{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;align-items:end;margin-top:8px}
+  .bottombar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + var(--sab));background:linear-gradient(transparent,var(--bg) 30%);display:flex;gap:10px;z-index:10}
+  /* ROTATE */
+  #rotate{background:#0F1114;align-items:center;justify-content:center;text-align:center;padding:24px;z-index:30}
+  .phone{width:70px;height:120px;border:4px solid var(--gold2);border-radius:14px;margin:0 auto 20px;animation:rot 1.8s ease-in-out infinite}
+  @keyframes rot{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+  /* VISUALIZE */
+  #viz{background:#000;flex-direction:row}
+  .vizstage{flex:1;position:relative;overflow:hidden;background:#000}
+  .vizstage .fit{position:absolute}
+  .vizstage img.photo{position:absolute;left:0;top:0;width:100%;height:100%}
+  .roulette{width:132px;background:rgba(15,17,20,.92);border-left:1px solid var(--line);overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none;position:relative}
+  .roulette::-webkit-scrollbar{display:none}
+  .roulette .spacer{height:calc(50vh - 62px);scroll-snap-align:none}
+  .ritem{scroll-snap-align:center;height:124px;margin:0 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;opacity:.55;transition:opacity .2s,transform .2s;cursor:pointer}
+  .ritem .sw{width:84px;height:62px;border-radius:12px;border:2px solid transparent;background-size:42px 42px}
+  .ritem.sel{opacity:1;transform:scale(1.06)}
+  .ritem.sel .sw{border-color:var(--gold2);box-shadow:0 0 0 3px rgba(201,160,97,.3)}
+  .ritem .n{font-size:11px;text-align:center;line-height:1.2;max-width:110px}
+  .ritem .n b{display:block;font-size:12px}
+  .ritem .p{font-size:11px;color:var(--gold2);font-weight:600}
+  .rmarker{position:absolute;left:0;right:0;top:50%;height:124px;transform:translateY(-50%);pointer-events:none;border-top:1px solid rgba(201,160,97,.35);border-bottom:1px solid rgba(201,160,97,.35);position:sticky}
+  .vizinfo{position:absolute;left:14px;top:calc(12px + var(--sat));display:flex;gap:8px;flex-wrap:wrap;z-index:5;max-width:70%}
+  .vizinfo .chip{background:rgba(0,0,0,.6);color:#fff;border-color:rgba(255,255,255,.25)}
+  .vizbtns{position:absolute;left:14px;bottom:calc(14px + var(--sab));display:flex;gap:10px;z-index:5}
+  .vizbtns .btn{min-height:46px;padding:10px 16px}
+  /* QUOTE */
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td,th{padding:9px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  td.n,th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  tr.total td{font-weight:700;font-size:17px;border-top:2px solid var(--gold);color:var(--gold2)}
+  details{margin:8px 0;font-size:13px}summary{cursor:pointer;color:var(--gold2);font-weight:600}
+  details ol{margin:6px 0 0 18px;padding:0;color:#C9CDD3}
+  .toggle{display:flex;align-items:center;gap:10px;font-size:14px;padding:8px 0}
+  .toggle input{width:22px;height:22px;accent-color:var(--gold)}
+  pre{white-space:pre-wrap;font-size:12px;background:var(--panel2);padding:12px;border-radius:12px;max-height:200px;overflow:auto;color:#C9CDD3}
+  /* MENU */
+  .menutabs{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;scrollbar-width:none}
+  .menutabs button{flex:0 0 auto;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:9px 14px;font-size:13px;cursor:pointer}
+  .menutabs button.sel{background:var(--gold);color:#1A1407;border-color:var(--gold)}
+  .brand{margin:14px 0 6px;display:flex;align-items:baseline;justify-content:space-between}
+  .brand .serif{font-size:24px}
+  .prod{display:flex;gap:12px;align-items:center;padding:10px;border-radius:14px;background:var(--panel);border:1px solid var(--line);margin-bottom:8px;cursor:pointer}
+  .prod .sw{width:64px;height:64px;border-radius:12px;background-size:36px 36px;flex:0 0 auto}
+  .prod .d{flex:1;min-width:0}
+  .prod .d b{display:block;font-size:15px}
+  .prod .d small{color:var(--muted);font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prod .pr{text-align:right;flex:0 0 auto}
+  .prod .pr b{display:block;color:var(--gold2)}
+  .prod .pr small{color:var(--muted);font-size:11px}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-height:85%;background:var(--panel);border-radius:24px 24px 0 0;border-top:1px solid var(--line);padding:14px 16px calc(20px + var(--sab));overflow-y:auto;transform:translateY(105%);transition:transform .28s;z-index:40}
+  .sheet.open{transform:none}
+  .sheet .sw{height:140px;border-radius:16px;background-size:70px 70px;margin-bottom:12px}
+  .spec{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;margin:10px 0}
+  .spec div{background:var(--panel2);border-radius:10px;padding:8px 10px}
+  .spec small{display:block;color:var(--muted);font-size:11px}
+  .dim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:39;display:none}
+  .dim.open{display:block}
+  .toast{position:fixed;bottom:calc(90px + var(--sab));left:50%;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:.3s;pointer-events:none;z-index:99;white-space:nowrap}
+  .toast.show{opacity:1}
+  .demo{font-size:11px;color:var(--warn);text-align:center;padding:4px 10px}
+  @media (min-width:700px){.homecards{grid-template-columns:1fr 1fr;max-width:720px;margin:0 auto}.scroll .wrap{max-width:720px;margin:0 auto}.bottombar{justify-content:center}.bottombar .btn{max-width:360px}}
+</style>
+</head>
+<body>
+
+<!-- ============ HOME : caméra + 2 cartes ============ -->
+<section id="home" class="screen active">
+  <div class="viewfinder"><div class="grid"></div>
+    <div class="corner" style="left:8%;top:22%;border-right:0;border-bottom:0"></div><div class="corner" style="right:8%;top:22%;border-left:0;border-bottom:0"></div>
+    <div class="corner" style="left:8%;bottom:34%;border-right:0;border-top:0"></div><div class="corner" style="right:8%;bottom:34%;border-left:0;border-top:0"></div>
+    <div class="hint">Cadre le mur entier, de face.<br><span style="opacity:.7;font-size:12px">Dans l'app native, ARCore mesure le mur pendant le cadrage.</span></div>
+  </div>
+  <div class="homehead"><div class="brandline">SOUFFLET décoration · Carouge</div><div class="serif">WallScan</div></div>
+  <div class="homecards">
+    <label class="hcard primary"><div class="ico">📷</div><div><b>Photographier un mur</b><small>Mesure, rendu et devis en 4 étapes</small></div><input id="file" type="file" accept="image/*" capture="environment" hidden></label>
+    <button class="hcard secondary" id="toMenu"><div class="ico">☰</div><div><b>Menu</b><small>Catalogue Élitis · Casamance · Les Dominotiers, projets, réglages</small></div></button>
+    <button class="btn ghost" id="demoPhoto" style="min-height:44px;margin-right:74px">Essayer avec un mur de démo</button>
+  </div>
+  <div class="fab" id="fabHome">☰</div>
+</section>
+
+<!-- ============ ANALYZE : mesure ============ -->
+<section id="analyze" class="screen">
+  <div class="topbar"><button class="back" id="backHome">‹ Caméra</button><div class="t">Analyse du mur</div><span class="brandline">1 / 3</span></div>
+  <div class="scroll"><div class="wrap">
+    <div class="stage" id="stageA"><img class="photo" id="imgA" alt=""><svg class="ov"><polygon id="polyA" fill="rgba(201,160,97,.16)" stroke="#E3C58C" stroke-width="2"/><rect id="refRect" fill="rgba(73,179,122,.22)" stroke="#49B37A" stroke-width="2" style="display:none"/></svg><div class="scan" id="scan"><div class="line"></div><div class="lbl">Analyse du mur…</div></div></div>
+    <div class="demo">DÉMO — rendu et devis sur données indicatives, moteur non validé</div>
+    <div class="pad">
+      <div class="card">
+        <div class="kpis"><div class="kpi"><b id="kW">–</b><small>largeur cm</small></div><div class="kpi"><b id="kH">–</b><small>hauteur cm</small></div><div class="kpi"><b id="kA">–</b><small>m² facturables</small></div></div>
+        <div id="confBox" class="conf">⚠ En attente d'analyse</div>
+        <p class="muted" style="margin:10px 0 6px">Ajuste les 4 coins sur le mur. Puis donne une référence d'échelle :</p>
+        <div class="chips" id="refChips">
+          <button data-ref="ceiling" class="sel">Hauteur sous plafond</button><button data-ref="a4">Feuille A4 sur le mur</button><button data-ref="manual">Je saisis les cotes</button>
+        </div>
+        <div id="refCeiling" style="margin-top:10px"><div class="muted" style="margin-bottom:6px">Hauteur sous plafond (cm) — ancien Carouge souvent 280–320</div><div class="chips" id="ceilChips"><button data-h="240">240</button><button data-h="250" class="sel">250</button><button data-h="260">260</button><button data-h="280">280</button><button data-h="300">300</button><button data-h="320">320</button></div></div>
+        <div id="refA4" class="muted" style="display:none;margin-top:10px">Place les deux poignées vertes sur le coin haut-gauche et bas-droit de la feuille A4 (21 × 29,7 cm).</div>
+        <div id="refManual" style="display:none;margin-top:10px" class="row"><label class="f">Largeur (cm)<input id="mW" type="number" value="400"></label><label class="f">Hauteur (cm)<input id="mH" type="number" value="250"></label></div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <div class="row" style="justify-content:space-between"><b>Portes et fenêtres</b><button class="btn ghost" id="addOpening" style="min-height:40px;padding:8px 12px;font-size:13px">+ Ajouter</button></div>
+        <div id="openings"></div>
+        <p class="muted" style="margin:8px 0 0">Déduites de la surface au-delà de 2 m² ; jamais des lés.</p>
+      </div>
+    </div>
+  </div></div>
+  <div class="bottombar"><button class="btn block" id="validateA" disabled>Valider la mesure →</button></div>
+  <div class="fab" id="fabA">☰</div>
+</section>
+
+<!-- ============ ROTATE ============ -->
+<section id="rotate" class="screen">
+  <div><div class="phone"></div><div class="serif" style="font-size:28px">Tourne ton téléphone</div><p class="muted" style="max-width:300px;margin:8px auto 18px">Le mur s'affiche en plein écran, la roulette des papiers peints à droite. Fais défiler pour changer le papier sur le mur.</p><button class="btn ghost" id="skipRotate">Continuer sans tourner</button></div>
+</section>
+
+<!-- ============ VISUALIZE ============ -->
+<section id="viz" class="screen">
+  <div class="vizstage" id="vizstage"><div class="fit" id="fit"><img class="photo" id="imgV" alt=""><div class="layer" id="paper"></div><img class="layer" id="light" alt=""><div class="layer" id="strips"></div></div>
+    <div class="vizinfo"><span class="chip" id="vizName">–</span><span class="chip" id="vizRolls">–</span><span class="chip" id="vizPrice">–</span></div>
+    <div class="vizbtns"><button class="btn ghost" id="backA">‹ Mesure</button><button class="btn ghost" id="toggleStrips">Lés</button><button class="btn" id="validateV">Valider →</button></div>
+  </div>
+  <div class="roulette" id="roulette"></div>
+</section>
+
+<!-- ============ QUOTE ============ -->
+<section id="quote" class="screen">
+  <div class="topbar"><button class="back" id="backV">‹ Rendu</button><div class="t">Devis</div><span class="brandline">3 / 3</span></div>
+  <div class="scroll"><div class="wrap pad">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px"><span class="chip" id="qRef">brouillon</span><span class="muted" id="qMeta"></span></div>
+      <table id="lines"></table>
+      <div id="why"></div>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <b>Options</b>
+      <label class="toggle"><input type="checkbox" id="optPose" checked> Pose par SOUFFLET décoration</label>
+      <label class="toggle"><input type="checkbox" id="optPrep"> Préparation du support (CHF 18.–/m²)</label>
+      <label class="toggle"><input type="checkbox" id="optDepose"> Dépose de l'ancien papier (CHF 14.–/m²)</label>
+      <label class="toggle"><input type="checkbox" id="optTravel"> Chantier hors canton (déplacement CHF 80.–)</label>
+      <div class="row" style="margin-top:6px"><label class="f">Remise marchandise (%) — libre jusqu'à 15 %<input id="discount" type="number" value="0" min="0" max="30"></label></div>
+      <div id="discountWarn"></div>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <b>Envoyer au client</b>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn" id="send">Envoyer (simulation)</button><button class="btn ghost" id="copy">Copier le devis</button><button class="btn ghost" id="saveProject">Enregistrer le projet</button></div>
+      <p class="muted" style="margin:10px 0 6px">App réelle : PDF à l'identité SOUFFLET, lien d'acceptation en ligne, projet poussé dans le CRM Octyzen.</p>
+      <pre id="quoteText"></pre>
+    </div>
+  </div></div>
+  <div class="fab" id="fabQ">☰</div>
+</section>
+
+<!-- ============ MENU ============ -->
+<section id="menu" class="screen">
+  <div class="topbar"><div><div class="brandline">SOUFFLET décoration</div><div class="t serif" style="font-size:26px">Menu</div></div><button class="back" id="menuCam">📷 Caméra</button></div>
+  <div class="menutabs" id="menutabs"><button data-tab="catalog" class="sel">Catalogue</button><button data-tab="projects">Projets</button><button data-tab="company">Entreprise</button><button data-tab="rules">Règles de devis</button></div>
+  <div class="scroll"><div class="wrap pad">
+    <div id="tab-catalog">
+      <input type="search" id="search" placeholder="Rechercher une référence, un éditeur, une couleur…" style="margin:4px 0 8px">
+      <div id="catalog"></div>
+    </div>
+    <div id="tab-projects" style="display:none"><div id="projects"></div></div>
+    <div id="tab-company" style="display:none">
+      <div class="card"><div class="serif" style="font-size:24px">SOUFFLET décoration</div><div class="muted">papier-peint, revêtements d'intérieur</div>
+        <div class="spec"><div><small>Forme juridique</small>Entreprise individuelle</div><div><small>Siège</small>Rue des Noirettes 9, 1227 Carouge GE</div><div><small>Dirigeant</small>Nicolas Soufflet, CFC 2007</div><div><small>Fondée</small>2023</div><div><small>Éditeurs</small>Élitis · Casamance · Les Dominotiers</div><div><small>CRM</small>Octyzen (Carouge) — sur mesure</div><div><small>Convention</small>CCT second œuvre romand (pose de papiers peints)</div><div><small>TVA</small>8,1 % — assujettissement à confirmer</div></div>
+        <p class="muted">Application éditée par NLPGenerator · nlp-generator.com</p></div>
+    </div>
+    <div id="tab-rules" style="display:none">
+      <div class="card"><b>Règles de calcul (simulées, paramétrables)</b>
+        <div class="spec"><div><small>Marge de coupe</small>5 cm haut + 5 cm bas</div><div><small>Raccord</small>hauteur de lé arrondie au multiple ; sauté = + offset</div><div><small>Réserve</small>+ 1 rouleau si motif à raccord</div><div><small>Ouvertures</small>déduites de la surface si > 2 m²</div><div><small>Pose sans raccord</small>CHF 55.–/m²</div><div><small>Pose avec raccord</small>CHF 70.–/m²</div><div><small>Pose panoramique</small>CHF 95.–/m²</div><div><small>Préparation / dépose</small>CHF 18.– / 14.– par m²</div><div><small>Minimum pose</small>8 m²</div><div><small>Déplacement</small>0 (GE) / CHF 80.– hors canton</div><div><small>Remise</small>≤ 15 % marchandise, motif au-delà</div><div><small>TVA / arrondi</small>8,1 % · total TTC aux 5 ct</div></div>
+        <details><summary>Auto-test du moteur</summary><pre id="selftest"></pre></details></div>
+    </div>
+  </div></div>
+  <div class="fab" id="fabM">📷</div>
+</section>
+
+<div class="dim" id="dim"></div>
+<div class="sheet" id="sheet"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================ DONNÉES (miroir supabase/seed/demo.sql v2) — prix indicatifs CHF en centimes
+const SETTINGS={cutTop:5,cutBottom:5,openingsThresholdM2:2,safetyRollIfPattern:true,roundTo5:true,travelOutside:8000,laborMinM2:8,vatBp:810,discountMax:15,panoramicStripCm:70};
+const LABOR={pose_standard:5500,pose_raccord:7000,pose_panoramique:9500,preparation:1800,depose:1400};
+const GLUE={name:"Colle intissé 1 kg",price:2400,coverage:25};
+const CATALOG=[
+ {sku:"CAS-LINA",brand:"Casamance",name:"Lina",color:"lin naturel",w:70,l:1005,rep:0,match:"free",off:0,unit:"roll",price:15900,min:1,lead:14,mat:"vinyle sur intissé 330 g/m²",fire:"B s2 d0",pat:"lin",c1:"#E9E1D1",c2:"#D2C6AE"},
+ {sku:"CAS-ARGILE",brand:"Casamance",name:"Argile",color:"terre cuite",w:70,l:1005,rep:0,match:"free",off:0,unit:"roll",price:15900,min:1,lead:14,mat:"intissé effet chaux",fire:"B s2 d0",pat:"chaux",c1:"#C4765A",c2:"#A95F46"},
+ {sku:"CAS-OCCITAN",brand:"Casamance",name:"Occitan",color:"sable",w:70,l:1005,rep:0,match:"free",off:0,unit:"roll",price:14900,min:1,lead:14,mat:"intissé 135 g/m² effet soie",fire:"B s1 d0",pat:"chaux",c1:"#E4D6BE",c2:"#CDBB9C"},
+ {sku:"CAS-BEAUSOLEIL",brand:"Casamance",name:"Beausoleil",color:"rayure ocre",w:70,l:1005,rep:0,match:"free",off:0,unit:"roll",price:16900,min:1,lead:14,mat:"vinyle effet lin 330 g/m²",fire:"B s2 d0",pat:"rayure",c1:"#EFE6D4",c2:"#C58F4E"},
+ {sku:"CAS-DESIRADE",brand:"Casamance",name:"Désirade",color:"vert",w:70,l:1005,rep:64,match:"half_drop",off:32,unit:"roll",price:17900,min:1,lead:14,mat:"vinyle sur intissé 330 g/m²",fire:"B s2 d0",pat:"feuillage",c1:"#DCE3D3",c2:"#4E7A58"},
+ {sku:"CAS-LEGENDES",brand:"Casamance",name:"Légendes",color:"bleu",w:70,l:1005,rep:70,match:"straight",off:0,unit:"roll",price:19900,min:1,lead:14,mat:"intissé gaufré 400 g/m²",fire:"B s2 d0",pat:"feuillage",c1:"#20304A",c2:"#8FA9C9"},
+ {sku:"CAS-MADHUCA",brand:"Casamance",name:"Madhuca",color:"jungle",w:70,l:1005,rep:70,match:"straight",off:0,unit:"roll",price:16900,min:1,lead:14,mat:"intissé peint main",fire:"B s2 d0",pat:"feuillage",c1:"#1E3A2F",c2:"#7CB58A"},
+ {sku:"CAS-ANNEES30",brand:"Casamance",name:"Années 30",color:"or",w:70,l:1005,rep:53,match:"straight",off:0,unit:"roll",price:16900,min:1,lead:14,mat:"intissé laque métallisée",fire:"B s2 d0",pat:"artdeco",c1:"#2B2622",c2:"#C9A061"},
+ {sku:"ELI-KARI",brand:"Élitis",name:"Kari",color:"ivoire",w:100,l:1000,rep:0,match:"free",off:0,unit:"roll",price:20800,min:1,lead:14,mat:"intissé tissé",fire:"B s1 d0",pat:"lin",c1:"#F2EDE2",c2:"#DED5C2"},
+ {sku:"ELI-YUZEN",brand:"Élitis",name:"Yuzen",color:"indigo",w:100,l:1000,rep:0,match:"free",off:0,unit:"roll",price:18900,min:1,lead:14,mat:"intissé effet papier japonais",fire:"B s1 d0",pat:"japon",c1:"#2A3C5E",c2:"#4B6391"},
+ {sku:"ELI-MOKO",brand:"Élitis",name:"Moko",color:"anthracite",w:100,l:1000,rep:0,match:"free",off:0,unit:"roll",price:27000,min:1,lead:14,mat:"vinyle effet cuir",fire:"B s1 d0",pat:"cuir",c1:"#2F3236",c2:"#45494F"},
+ {sku:"ELI-CASAPAJA",brand:"Élitis",name:"La Casa de Paja",color:"paille",w:70,l:1000,rep:0,match:"free",off:0,unit:"roll",price:36700,min:1,lead:14,mat:"fibres naturelles tissées",fire:"B s1 d0",pat:"paille",c1:"#D9BF8C",c2:"#B7975F"},
+ {sku:"DOM-MISTY",brand:"Les Dominotiers",name:"Misty Forest",color:"brume",w:70,l:0,rep:0,match:"free",off:0,unit:"m2",price:7800,min:1,lead:21,mat:"intissé 195 g/m², FSC, France",fire:"C s1 d0",pat:"pano-forest",c1:"#D8DEDC",c2:"#4A6A62"},
+ {sku:"DOM-COLLINES",brand:"Les Dominotiers",name:"Cent Collines",color:"aube",w:70,l:0,rep:0,match:"free",off:0,unit:"m2",price:7800,min:1,lead:21,mat:"intissé 195 g/m², FSC, France",fire:"C s1 d0",pat:"pano-hills",c1:"#F1E6D2",c2:"#B99A6A"},
+ {sku:"DOM-PINS",brand:"Les Dominotiers",name:"Entre les Pins",color:"turquoise",w:70,l:0,rep:0,match:"free",off:0,unit:"m2",price:7800,min:1,lead:21,mat:"intissé 195 g/m², FSC, France",fire:"C s1 d0",pat:"pano-pines",c1:"#E6EEEC",c2:"#2F7F7A"},
+];
+const BRANDS=["Casamance","Élitis","Les Dominotiers"];
+// ---- motifs vectoriels originaux (DÉMO). Tuile carrée = tileCm(p) cm. Panoramiques = scène unique étirée sur le mur.
+function svgTile(p){const s=200,c1=p.c1,c2=p.c2;let b="";
+  if(p.pat==="lin"){b=`<rect width="${s}" height="${s}" fill="${c1}"/>`;for(let i=0;i<s;i+=4)b+=`<line x1="0" y1="${i}" x2="${s}" y2="${i}" stroke="${c2}" stroke-width="1" opacity=".5"/><line x1="${i}" y1="0" x2="${i}" y2="${s}" stroke="${c2}" stroke-width="1" opacity=".3"/>`;}
+  else if(p.pat==="chaux"){b=`<defs><radialGradient id="g" cx="40%" cy="30%" r="90%"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></radialGradient></defs><rect width="${s}" height="${s}" fill="url(#g)"/><rect width="${s}" height="${s}" fill="${c1}" opacity=".3"/>`;}
+  else if(p.pat==="rayure"){b=`<rect width="${s}" height="${s}" fill="${c1}"/>`;for(let i=0;i<s;i+=25)b+=`<rect x="${i}" width="7" height="${s}" fill="${c2}" opacity=".85"/><rect x="${i+14}" width="2" height="${s}" fill="${c2}" opacity=".5"/>`;}
+  else if(p.pat==="feuillage"){const leaf=(x,y,r,k)=>`<g transform="translate(${x} ${y}) rotate(${r}) scale(${k})"><path d="M0 0 C 18 -10, 34 -8, 44 2 C 34 12, 18 14, 0 0 Z" fill="${c2}"/><line x1="2" y1="0" x2="40" y2="2" stroke="${c1}" stroke-width="1.2"/></g>`;b=`<rect width="${s}" height="${s}" fill="${c1}"/>`+leaf(20,40,-30,1)+leaf(110,30,20,1.1)+leaf(60,120,-70,.9)+leaf(150,140,40,1)+leaf(10,170,10,.8)+leaf(120,190,-20,1);}
+  else if(p.pat==="artdeco"){b=`<rect width="${s}" height="${s}" fill="${c1}"/>`;for(let x=0;x<s;x+=100)for(let y=0;y<s;y+=100)b+=`<g transform="translate(${x+50} ${y+100})">${[0,1,2,3,4].map(i=>`<path d="M0 0 L ${-48+i*24} -46 A 50 50 0 0 1 ${-24+i*24} -46 Z" fill="${c2}" opacity="${.35+i*.12}"/>`).join("")}</g>`;}
+  else if(p.pat==="japon"){b=`<rect width="${s}" height="${s}" fill="${c1}"/>`;for(let i=0;i<60;i++){const x=(i*37)%s,y=(i*53)%s;b+=`<circle cx="${x}" cy="${y}" r="${1+(i%3)}" fill="${c2}" opacity=".5"/>`;}b+=`<path d="M0 100 Q 50 80 100 100 T 200 100" stroke="${c2}" fill="none" stroke-width="1" opacity=".4"/>`;}
+  else if(p.pat==="cuir"){b=`<rect width="${s}" height="${s}" fill="${c1}"/>`;for(let i=0;i<120;i++){const x=(i*41)%s,y=(i*67)%s;b+=`<ellipse cx="${x}" cy="${y}" rx="${3+(i%4)}" ry="${2+(i%3)}" fill="${c2}" opacity=".55"/>`;}}
+  else if(p.pat==="paille"){b=`<rect width="${s}" height="${s}" fill="${c1}"/>`;for(let i=0;i<s;i+=10)b+=`<rect x="0" y="${i}" width="${s}" height="4" fill="${c2}" opacity=".55"/>`;for(let i=0;i<s;i+=40)b+=`<rect x="${i}" y="0" width="2" height="${s}" fill="${c2}" opacity=".7"/>`;}
+  else if(p.pat==="pano-forest"){b=`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="#F6F3EC"/></linearGradient></defs><rect width="400" height="200" fill="url(#sky)"/>`+[0.18,0.32,0.5,0.7,0.92].map((o,k)=>{let t="";for(let x=-20;x<420;x+=26+k*6){const h=70+((x*7+k*31)%60);t+=`<path d="M${x} 200 L${x} ${200-h} M${x} ${200-h+10} l-10 14 M${x} ${200-h+22} l12 16 M${x} ${200-h+38} l-12 16" stroke="${c2}" stroke-width="${1.5+k*.8}" fill="none" opacity="${o}"/>`;}return t;}).join("")+`<rect width="400" height="200" fill="#fff" opacity=".12"/>`;}
+  else if(p.pat==="pano-hills"){b=`<rect width="400" height="200" fill="${c1}"/><path d="M0 120 Q 80 70 160 110 T 400 100 V200 H0Z" fill="${c2}" opacity=".35"/><path d="M0 150 Q 100 110 200 145 T 400 140 V200 H0Z" fill="${c2}" opacity=".55"/><path d="M0 175 Q 120 150 240 178 T 400 170 V200 H0Z" fill="${c2}" opacity=".8"/><path d="M60 200 C 90 160, 140 170, 200 200" stroke="#fff" fill="none" opacity=".6"/><circle cx="330" cy="48" r="14" fill="#fff" opacity=".7"/>`;}
+  else if(p.pat==="pano-pines"){b=`<rect width="400" height="200" fill="${c1}"/><rect y="130" width="400" height="70" fill="${c2}" opacity=".35"/>`;for(let x=20;x<400;x+=55){b+=`<path d="M${x} 200 L${x} 60 M${x-22} 95 L${x} 55 L${x+22} 95 M${x-26} 125 L${x} 80 L${x+26} 125 M${x-30} 160 L${x} 110 L${x+30} 160" stroke="${c2}" stroke-width="5" fill="none" stroke-linejoin="round" opacity=".9"/>`;}}
+  const vb=p.pat.startsWith("pano")?"0 0 400 200":`0 0 ${s} ${s}`;const wd=p.pat.startsWith("pano")?400:s,ht=p.pat.startsWith("pano")?200:s;
+  return "data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${wd}" height="${ht}" viewBox="${vb}">${b}</svg>`);}
+const tileCm=p=>p.rep>0?p.rep:Math.min(p.w,70);
+const isPano=p=>p.unit==="m2";
+
+// ============================================================ MOTEUR DE DEVIS (centimes, règles v2)
+const ceil=Math.ceil,floor=Math.floor;const rhu=x=>Math.sign(x)*Math.floor(Math.abs(x)+0.5);const r5=c=>Math.sign(c)*Math.floor((Math.abs(c)+2)/5)*5;
+function billableArea(w){const g=w.w*w.h/1e4;const d=w.openings.reduce((s,o)=>{const a=o.w*o.h/1e4;return a>SETTINGS.openingsThresholdM2?s+a:s;},0);return Math.round((g-d)*100)/100;}
+function rolls(w,p){const t=[];let sh=w.h+SETTINGS.cutTop+SETTINGS.cutBottom;t.push(`Hauteur de lé = ${w.h} + 5 + 5 = ${sh} cm`);
+  const n=ceil(w.w/p.w);t.push(`Lés = ⌈${w.w} / ${p.w}⌉ = ${n}`);const area=billableArea(w);
+  if(isPano(p)){const m2=Math.round(n*(p.w/100)*(sh/100)*100)/100;t.push(`Panoramique sur mesure : ${n} lés × ${p.w/100} m × ${sh/100} m = ${m2} m² de décor`);t.push(`Surface facturable pose = ${area} m²`);return{stripHeight:sh,strips:n,stripsPerRoll:0,rollCount:0,panoM2:m2,area,trace:t};}
+  if(p.match!=="free"&&p.rep>0){const r=ceil(sh/p.rep)*p.rep;t.push(`Raccord ${p.match==="half_drop"?"sauté":"droit"} ${p.rep} cm → ${r} cm`);sh=r;if(p.match==="half_drop"&&p.off>0){sh+=p.off;t.push(`Raccord sauté : + ${p.off} cm sur les lés alternés → ${sh} cm`);}}
+  const spr=floor(p.l/sh);t.push(`Lés par rouleau = ⌊${p.l} / ${sh}⌋ = ${spr}`);let rc=ceil(n/spr);t.push(`Rouleaux = ⌈${n} / ${spr}⌉ = ${rc}`);
+  if(SETTINGS.safetyRollIfPattern&&p.match!=="free"){rc+=1;t.push(`Motif à raccord → + 1 rouleau de réserve = ${rc}`);}
+  if(rc<p.min){rc=p.min;t.push(`Minimum fournisseur → ${rc}`);}
+  t.push(`Surface facturable = ${area} m² (ouvertures > 2 m² déduites)`);return{stripHeight:sh,strips:n,stripsPerRoll:spr,rollCount:rc,area,trace:t};}
+function quote(w,p,o){const r=rolls(w,p),L=[];
+  if(isPano(p))L.push({kind:"wallpaper",d:`${p.brand} — ${p.name} ${p.color} (panoramique sur mesure)`,qty:r.panoM2,unit:"m²",up:p.price,disc:true,trace:r.trace});
+  else L.push({kind:"wallpaper",d:`${p.brand} — ${p.name} ${p.color}`,qty:r.rollCount,unit:"rouleau",up:p.price,disc:true,trace:r.trace});
+  const glue=ceil(r.area/GLUE.coverage);L.push({kind:"consumable",d:GLUE.name,qty:glue,unit:"pot",up:GLUE.price,trace:[`⌈${r.area} / ${GLUE.coverage}⌉ = ${glue}`]});
+  if(o.pose){const lm=Math.max(r.area,SETTINGS.laborMinM2);const k=isPano(p)?"pose_panoramique":p.match==="free"?"pose_standard":"pose_raccord";const lbl={pose_standard:"Pose sans raccord",pose_raccord:"Pose avec raccord",pose_panoramique:"Pose panoramique"}[k];
+    L.push({kind:"labor",d:lbl,qty:lm,unit:"m²",up:LABOR[k],trace:[`${lm} m² × ${(LABOR[k]/100).toFixed(2)} CHF${lm>r.area?" (minimum 8 m²)":""}`]});
+    if(o.prep)L.push({kind:"labor",d:"Préparation du support",qty:lm,unit:"m²",up:LABOR.preparation});if(o.depose)L.push({kind:"labor",d:"Dépose de l'ancien papier",qty:lm,unit:"m²",up:LABOR.depose});
+    if(o.travel)L.push({kind:"labor",d:"Déplacement hors canton",qty:1,unit:"forfait",up:SETTINGS.travelOutside});}
+  let subtotal=0;for(const l of L){l.total=rhu(l.up*l.qty);subtotal+=l.total;}
+  const base=L.filter(l=>l.disc).reduce((s,l)=>s+l.total,0);const discount=o.discountPct>0?rhu(base*o.discountPct/100):0;const net=subtotal-discount;const vat=rhu(net*SETTINGS.vatBp/1e4);let total=net+vat;if(SETTINGS.roundTo5)total=r5(total);
+  return{lines:L,rolls:r,subtotal,discount,net,vat,total,needsReason:o.discountPct>SETTINGS.discountMax};}
+const chf=c=>new Intl.NumberFormat("fr-CH",{style:"currency",currency:"CHF"}).format(c/100);
+
+// ============================================================ ÉTAT & NAVIGATION
+const S={img:null,quad:null,ref:[[.44,.36],[.5,.46]],refMode:"ceiling",ceiling:250,w:0,h:0,openings:[],confidence:0,method:"",sel:CATALOG[4],sent:false,number:null,q:null,corrected:false};
+const $=id=>document.getElementById(id);
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");window.scrollTo(0,0);if(id==="analyze")setTimeout(layoutA,30);if(id==="viz")setTimeout(renderViz,30);}
+$("toMenu").onclick=()=>show("menu");["fabHome","fabA","fabQ"].forEach(id=>$(id).onclick=()=>show("menu"));$("fabM").onclick=()=>show("home");$("menuCam").onclick=()=>show("home");$("backHome").onclick=()=>show("home");$("backA").onclick=()=>show("analyze");$("backV").onclick=()=>show("viz");
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove("show"),1900);}
+
+// ============================================================ PHOTO
+function demoPhoto(){const c=document.createElement("canvas");c.width=1400;c.height=1000;const x=c.getContext("2d");
+  const g=x.createLinearGradient(0,0,1400,0);g.addColorStop(0,"#B5AA97");g.addColorStop(.45,"#DBD2C2");g.addColorStop(1,"#A4998A");x.fillStyle=g;x.fillRect(0,0,1400,700);
+  const sp=x.createRadialGradient(380,120,20,380,120,480);sp.addColorStop(0,"rgba(255,246,222,.6)");sp.addColorStop(1,"rgba(255,246,222,0)");x.fillStyle=sp;x.fillRect(0,0,1400,700);
+  x.fillStyle="#6B5B48";x.fillRect(0,700,1400,300);const fg=x.createLinearGradient(0,700,0,1000);fg.addColorStop(0,"rgba(0,0,0,.3)");fg.addColorStop(1,"rgba(0,0,0,0)");x.fillStyle=fg;x.fillRect(0,700,1400,300);for(let i=0;i<1400;i+=95){x.fillStyle="rgba(0,0,0,.12)";x.fillRect(i,700,2,300);}
+  x.fillStyle="#2A2E33";x.fillRect(0,678,1400,26);x.fillStyle="#fff";x.fillRect(1040,150,250,330);x.fillStyle="#9CC4E4";x.fillRect(1058,168,214,294);x.fillStyle="#fff";x.fillRect(1160,168,8,294);x.fillRect(1058,312,214,8);
+  x.fillStyle="#FFFFFF";x.fillRect(640,360,59,84);x.strokeStyle="rgba(0,0,0,.35)";x.strokeRect(640,360,59,84);x.fillStyle="#F2F2F2";x.fillRect(180,280,320,230);x.fillStyle="#fff";x.fillRect(192,292,296,206);x.strokeStyle="rgba(0,0,0,.25)";x.strokeRect(180,280,320,230);
+  x.fillStyle="#E8E6E1";x.fillRect(330,560,70,70);const vg=x.createRadialGradient(700,450,350,700,450,1000);vg.addColorStop(0,"rgba(0,0,0,0)");vg.addColorStop(1,"rgba(0,0,0,.38)");x.fillStyle=vg;x.fillRect(0,0,1400,1000);return c.toDataURL("image/jpeg",.9);}
+function setImage(src,quad){const im=new Image();im.onload=()=>{S.img={src,w:im.naturalWidth,h:im.naturalHeight};S.quad=quad||[[.1,.1],[.9,.1],[.9,.86],[.1,.86]];S.openings=[];S.number=null;S.sent=false;S.corrected=false;
+  $("imgA").src=src;$("imgV").src=src;$("light").src=src;show("analyze");startAnalysis();};im.src=src;}
+function downscale(src){const im=new Image();im.onload=()=>{const m=1600,k=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);setImage(c.toDataURL("image/jpeg",.88));};im.src=src;}
+$("file").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>downscale(r.result);r.readAsDataURL(f);e.target.value="";});
+$("demoPhoto").onclick=()=>setImage(demoPhoto(),[[.08,.06],[.92,.06],[.92,.67],[.08,.67]]);
+
+// ============================================================ ANALYSE (coins, référence, confiance)
+const stageA=$("stageA");const H=[0,1,2,3].map(i=>{const d=document.createElement("div");d.className="handle";stageA.appendChild(d);return d;});const RH=[0,1].map(()=>{const d=document.createElement("div");d.className="handle ref";stageA.appendChild(d);return d;});
+function layoutA(){if(!S.img)return;const W=stageA.clientWidth,Hh=stageA.clientHeight;if(!W)return;S.quad.forEach((q,i)=>{H[i].style.left=q[0]*W+"px";H[i].style.top=q[1]*Hh+"px";});$("polyA").setAttribute("points",S.quad.map(q=>`${q[0]*W},${q[1]*Hh}`).join(" "));
+  const a4=S.refMode==="a4";RH.forEach((h,i)=>{h.style.display=a4?"block":"none";h.style.left=S.ref[i][0]*W+"px";h.style.top=S.ref[i][1]*Hh+"px";});const rr=$("refRect");rr.style.display=a4?"block":"none";if(a4){const a=S.ref[0],b=S.ref[1];rr.setAttribute("x",Math.min(a[0],b[0])*W);rr.setAttribute("y",Math.min(a[1],b[1])*Hh);rr.setAttribute("width",Math.abs(a[0]-b[0])*W);rr.setAttribute("height",Math.abs(a[1]-b[1])*Hh);}}
+let drag=null;function ptr(e){const r=stageA.getBoundingClientRect();return[Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(e.clientY-r.top)/r.height))];}
+H.forEach((h,i)=>h.addEventListener("pointerdown",e=>{e.preventDefault();drag={a:"quad",i};}));RH.forEach((h,i)=>h.addEventListener("pointerdown",e=>{e.preventDefault();drag={a:"ref",i};}));
+window.addEventListener("pointermove",e=>{if(!drag)return;S[drag.a][drag.i]=ptr(e);layoutA();computeMeasure();});window.addEventListener("pointerup",()=>{drag=null;});window.addEventListener("resize",()=>{layoutA();renderViz();});
+// homographie
+function adj(m){return[m[4]*m[8]-m[5]*m[7],m[2]*m[7]-m[1]*m[8],m[1]*m[5]-m[2]*m[4],m[5]*m[6]-m[3]*m[8],m[0]*m[8]-m[2]*m[6],m[2]*m[3]-m[0]*m[5],m[3]*m[7]-m[4]*m[6],m[1]*m[6]-m[0]*m[7],m[0]*m[4]-m[1]*m[3]];}
+function mul(a,b){const r=[];for(let i=0;i<3;i++)for(let j=0;j<3;j++){let s=0;for(let k=0;k<3;k++)s+=a[3*i+k]*b[3*k+j];r.push(s);}return r;}
+function mulv(m,v){return[m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]*v[2],m[6]*v[0]+m[7]*v[1]+m[8]*v[2]];}
+function basis(p){const m=[p[0][0],p[1][0],p[2][0],p[0][1],p[1][1],p[2][1],1,1,1];const v=mulv(adj(m),[p[3][0],p[3][1],1]);return mul(m,[v[0],0,0,0,v[1],0,0,0,v[2]]);}
+function homography(f,t){const h=mul(basis(t),adj(basis(f)));const k=h[8]||1;return h.map(v=>v/k);}function apply(h,x,y){const X=h[0]*x+h[1]*y+h[2],Y=h[3]*x+h[4]*y+h[5],Z=h[6]*x+h[7]*y+h[8];return[X/Z,Y/Z];}
+function startAnalysis(){$("scan").classList.add("on");$("validateA").disabled=true;S.w=0;S.h=0;updateKpis();setTimeout(()=>{$("scan").classList.remove("on");computeMeasure();toast("Coins proposés — ajuste si besoin");},1500);}
+function quadAspect(){const q=S.quad.map(p=>[p[0]*S.img.w,p[1]*S.img.h]);const d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);const top=d(q[0],q[1]),bot=d(q[3],q[2]),left=d(q[0],q[3]),right=d(q[1],q[2]);return((top+bot)/2)/((left+right)/2);}
+function computeMeasure(){if(!S.img)return;
+  if(S.refMode==="manual"){S.w=Number($("mW").value)||0;S.h=Number($("mH").value)||0;S.confidence=1;S.method="manuelle";}
+  else if(S.refMode==="ceiling"){S.h=S.ceiling;S.w=Math.round(S.ceiling*quadAspect());S.confidence=0.82;S.method="hauteur sous plafond (ordre de grandeur)";}
+  else{const W=stageA.clientWidth,Hh=stageA.clientHeight;const inv=homography(S.quad.map(q=>[q[0]*W,q[1]*Hh]),[[0,0],[1,0],[1,1],[0,1]]);const a=apply(inv,S.ref[0][0]*W,S.ref[0][1]*Hh),b=apply(inv,S.ref[1][0]*W,S.ref[1][1]*Hh);const fu=Math.abs(b[0]-a[0]),fv=Math.abs(b[1]-a[1]);
+    if(fu>0.004&&fv>0.004){S.w=Math.round(21/fu);S.h=Math.round(29.7/fv);}const diag=Math.hypot((S.ref[1][0]-S.ref[0][0])*S.img.w,(S.ref[1][1]-S.ref[0][1])*S.img.h);S.confidence=diag<40?0.5:diag<90?0.72:diag<160?0.85:0.9;S.method="feuille A4";}
+  if(!(S.w>30&&S.w<2500&&S.h>30&&S.h<700)){S.w=0;S.h=0;}updateKpis();}
+function updateKpis(){const ok=S.w>0&&S.h>0;const a=ok?billableArea({w:S.w,h:S.h,openings:S.openings}):0;$("kW").textContent=ok?S.w:"–";$("kH").textContent=ok?S.h:"–";$("kA").textContent=ok?a.toFixed(2):"–";
+  const c=$("confBox");if(!ok){c.className="conf";c.textContent="⚠ Mesure incomplète";}else if(S.confidence>=0.8){c.className="conf ok";c.textContent=`✓ Confiance ${(S.confidence*100).toFixed(0)} % · ${S.method}`;}else{c.className="conf";c.textContent=`⚠ Confiance ${(S.confidence*100).toFixed(0)} % — mesure à vérifier avant d'envoyer le devis · ${S.method}`;}
+  $("validateA").disabled=!ok;}
+$("refChips").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.refMode=b.dataset.ref;$("refChips").querySelectorAll("button").forEach(x=>x.classList.toggle("sel",x===b));$("refCeiling").style.display=S.refMode==="ceiling"?"block":"none";$("refA4").style.display=S.refMode==="a4"?"block":"none";$("refManual").style.display=S.refMode==="manual"?"flex":"none";layoutA();computeMeasure();});
+$("ceilChips").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.ceiling=Number(b.dataset.h);$("ceilChips").querySelectorAll("button").forEach(x=>x.classList.toggle("sel",x===b));computeMeasure();});
+["mW","mH"].forEach(id=>$(id).addEventListener("input",computeMeasure));
+function renderOpenings(){const box=$("openings");box.innerHTML="";S.openings.forEach((o,i)=>{const d=document.createElement("div");d.className="opening";d.innerHTML=`<label class="f">Type<select data-i="${i}" data-k="t" style="font-size:15px;padding:11px;border-radius:12px;background:var(--panel2);color:var(--text);border:1px solid var(--line)"><option value="door"${o.t==="door"?" selected":""}>Porte</option><option value="window"${o.t==="window"?" selected":""}>Fenêtre</option></select></label><label class="f">Larg. cm<input type="number" data-i="${i}" data-k="w" value="${o.w}"></label><label class="f">Haut. cm<input type="number" data-i="${i}" data-k="h" value="${o.h}"></label><button class="btn ghost" data-del="${i}" style="min-height:44px;padding:8px 12px">✕</button>`;box.appendChild(d);});
+  box.querySelectorAll("input,select").forEach(el=>el.addEventListener("input",e=>{const o=S.openings[+e.target.dataset.i];const k=e.target.dataset.k;o[k]=k==="t"?e.target.value:Number(e.target.value)||0;updateKpis();}));box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{S.openings.splice(+b.dataset.del,1);renderOpenings();updateKpis();});}
+$("addOpening").onclick=()=>{S.openings.push({t:"window",w:120,h:140});renderOpenings();updateKpis();};
+const wall=()=>({w:S.w,h:S.h,openings:S.openings});
+$("validateA").onclick=()=>{const coarse=matchMedia("(pointer: coarse)").matches,portrait=matchMedia("(orientation: portrait)").matches;if(coarse&&portrait){show("rotate");tryLock();}else show("viz");};
+function tryLock(){try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock("landscape").catch(()=>{});}catch(e){}}
+$("skipRotate").onclick=()=>show("viz");
+matchMedia("(orientation: landscape)").addEventListener("change",e=>{if(e.matches&&$("rotate").classList.contains("active"))show("viz");});
+
+// ============================================================ RENDU + ROULETTE
+let showStrips=false;
+function fitRect(){const st=$("vizstage");const W=st.clientWidth,Hh=st.clientHeight;if(!S.img||!W)return null;const k=Math.min(W/S.img.w,Hh/S.img.h);const w=S.img.w*k,h=S.img.h*k;return{x:(W-w)/2,y:(Hh-h)/2,w,h};}
+function renderViz(){const f=fitRect();if(!f)return;const fit=$("fit");fit.style.left=f.x+"px";fit.style.top=f.y+"px";fit.style.width=f.w+"px";fit.style.height=f.h+"px";const W=f.w,Hh=f.h,p=S.sel;
+  const paper=$("paper");paper.style.width=W+"px";paper.style.height=Hh+"px";const pxPerCm=W/(S.w||400);
+  if(isPano(p)){paper.style.backgroundImage=`url("${svgTile(p)}")`;paper.style.backgroundSize="100% 100%";paper.style.backgroundRepeat="no-repeat";}
+  else{const tile=tileCm(p)*pxPerCm;paper.style.backgroundImage=`url("${svgTile(p)}")`;paper.style.backgroundSize=`${tile}px ${tile}px`;paper.style.backgroundRepeat="repeat";}
+  const quadPx=S.quad.map(q=>[q[0]*W,q[1]*Hh]);const h=homography([[0,0],[W,0],[W,Hh],[0,Hh]],quadPx);const m=[h[0],h[3],0,h[6],h[1],h[4],0,h[7],0,0,1,0,h[2],h[5],0,h[8]];paper.style.transform=`matrix3d(${m.join(",")})`;
+  const light=$("light");light.style.width=W+"px";light.style.height=Hh+"px";light.style.clipPath=`polygon(${quadPx.map(q=>`${q[0]}px ${q[1]}px`).join(",")})`;light.style.mixBlendMode="multiply";light.style.filter="grayscale(1) brightness(1.25) contrast(1.05)";light.style.opacity=".85";
+  const st=$("strips");st.style.width=W+"px";st.style.height=Hh+"px";st.style.transform=paper.style.transform;st.style.backgroundImage=showStrips?`repeating-linear-gradient(90deg,rgba(255,255,255,.95) 0 2px,transparent 2px ${p.w*pxPerCm}px)`:"none";
+  const r=rolls(wall(),p);$("vizName").textContent=`${p.brand} · ${p.name} ${p.color}`;$("vizRolls").textContent=isPano(p)?`${r.strips} lés · ${r.panoM2} m²`:`${r.strips} lés · ${r.rollCount} rouleaux`;$("vizPrice").textContent=isPano(p)?`${chf(p.price)}/m²`:`${chf(p.price)}/rouleau`;}
+$("toggleStrips").onclick=()=>{showStrips=!showStrips;renderViz();};
+function buildRoulette(){const r=$("roulette");r.innerHTML=`<div class="spacer"></div>`+CATALOG.map((p,i)=>`<div class="ritem${p===S.sel?" sel":""}" data-i="${i}"><div class="sw" style="background-image:url('${svgTile(p)}')${isPano(p)?";background-size:100% 100%":""}"></div><div class="n"><b>${p.name}</b>${p.brand}</div><div class="p">${chf(p.price)}${isPano(p)?"/m²":""}</div></div>`).join("")+`<div class="spacer"></div>`;
+  r.querySelectorAll(".ritem").forEach(el=>el.onclick=()=>{el.scrollIntoView({block:"center",behavior:"smooth"});select(+el.dataset.i);});
+  let t;r.addEventListener("scroll",()=>{clearTimeout(t);t=setTimeout(()=>{const mid=r.scrollTop+r.clientHeight/2;let best=null,bd=1e9;r.querySelectorAll(".ritem").forEach(el=>{const c=el.offsetTop+el.offsetHeight/2;const d=Math.abs(c-mid);if(d<bd){bd=d;best=el;}});if(best)select(+best.dataset.i);},80);});}
+function select(i){const p=CATALOG[i];if(p===S.sel&&$("roulette").querySelector(".ritem.sel")?.dataset.i==String(i))return;S.sel=p;$("roulette").querySelectorAll(".ritem").forEach(el=>el.classList.toggle("sel",+el.dataset.i===i));renderViz();renderQuote();}
+$("validateV").onclick=()=>{renderQuote();show("quote");};
+
+// ============================================================ DEVIS
+function opts(){return{pose:$("optPose").checked,prep:$("optPrep").checked,depose:$("optDepose").checked,travel:$("optTravel").checked,discountPct:Number($("discount").value)||0};}
+["optPose","optPrep","optDepose","optTravel","discount"].forEach(id=>$(id).addEventListener("input",renderQuote));
+function renderQuote(){if(!(S.w>0)){return;}const o=opts();const q=quote(wall(),S.sel,o);S.q=q;$("qRef").textContent=S.number?`N° ${S.number} · envoyé`:"brouillon";$("qMeta").textContent=`mur ${S.w} × ${S.h} cm · ${S.method}`;
+  $("discountWarn").innerHTML=q.needsReason?`<div class="conf" style="margin-top:8px">Remise > 15 % : indiquer un motif avant l'envoi</div>`:"";
+  let html=`<tr><th>Désignation</th><th class="n">Qté</th><th class="n">PU</th><th class="n">Total HT</th></tr>`;q.lines.forEach(l=>html+=`<tr><td>${l.d}</td><td class="n">${l.qty} ${l.unit}</td><td class="n">${chf(l.up)}</td><td class="n">${chf(l.total)}</td></tr>`);
+  html+=`<tr><td colspan="3">Sous-total HT</td><td class="n">${chf(q.subtotal)}</td></tr>`;if(q.discount)html+=`<tr><td colspan="3">Remise ${o.discountPct} % (marchandise)</td><td class="n">− ${chf(q.discount)}</td></tr>`;html+=`<tr><td colspan="3">TVA 8,1 %</td><td class="n">${chf(q.vat)}</td></tr><tr class="total"><td colspan="3">Total TTC</td><td class="n">${chf(q.total)}</td></tr>`;$("lines").innerHTML=html;
+  $("why").innerHTML=`<details open><summary>${isPano(S.sel)?"Pourquoi "+q.rolls.panoM2+" m² ?":"Pourquoi "+q.rolls.rollCount+" rouleaux ?"}</summary><ol>${q.rolls.trace.map(t=>`<li>${t}</li>`).join("")}</ol></details>`;$("quoteText").textContent=quoteText();}
+function quoteText(){const q=S.q,o=opts();let t=`DEVIS ${S.number?"N° "+S.number:"(brouillon)"} — SOUFFLET décoration, Rue des Noirettes 9, 1227 Carouge\nMur ${S.w} × ${S.h} cm · ${q.rolls.area} m² facturables · mesure ${S.method} (confiance ${(S.confidence*100).toFixed(0)} %)\n\n`;q.lines.forEach(l=>t+=`${l.d.padEnd(48)} ${String(l.qty+" "+l.unit).padStart(12)} ${chf(l.total).padStart(14)}\n`);t+=`\nSous-total HT ${chf(q.subtotal)}`;if(q.discount)t+=`\nRemise ${o.discountPct} % − ${chf(q.discount)}`;t+=`\nTVA 8,1 % ${chf(q.vat)}\nTOTAL TTC ${chf(q.total)}\n\nValidité 30 jours · droit suisse, for à Genève · prix indicatifs (démo), moteur non validé.`;return t;}
+$("send").onclick=()=>{if(S.confidence<0.8){toast("Envoi bloqué : mesure à vérifier");return;}if(S.q.needsReason){toast("Envoi bloqué : motif de remise manquant");return;}if(!S.number)S.number=2026001+Math.floor(Math.random()*40);S.sent=true;renderQuote();toast(`Devis ${S.number} envoyé (simulation)`);};
+$("copy").onclick=()=>{navigator.clipboard?.writeText(quoteText()).then(()=>toast("Devis copié")).catch(()=>toast("Copie refusée : sélectionne le texte"));};
+$("saveProject").onclick=()=>{try{const list=JSON.parse(localStorage.getItem("wallscan.projects")||"[]");list.unshift({at:new Date().toISOString(),sel:S.sel.sku,w:S.w,h:S.h,total:S.q.total,number:S.number});localStorage.setItem("wallscan.projects",JSON.stringify(list.slice(0,10)));toast("Projet enregistré");renderProjects();}catch(e){toast("Stockage indisponible sur cet appareil");}};
+
+// ============================================================ MENU
+$("menutabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{$("menutabs").querySelectorAll("button").forEach(x=>x.classList.toggle("sel",x===b));["catalog","projects","company","rules"].forEach(t=>$("tab-"+t).style.display=t===b.dataset.tab?"block":"none");if(b.dataset.tab==="projects")renderProjects();});
+function renderCatalog(filter=""){const f=filter.trim().toLowerCase();const c=$("catalog");c.innerHTML="";BRANDS.forEach(br=>{const items=CATALOG.filter(p=>p.brand===br&&(!f||`${p.brand} ${p.name} ${p.color} ${p.sku} ${p.mat}`.toLowerCase().includes(f)));if(!items.length)return;
+  c.insertAdjacentHTML("beforeend",`<div class="brand"><span class="serif">${br}</span><span class="muted">${items.length} réf.</span></div>`);
+  items.forEach(p=>{const m2=isPano(p)?p.price:Math.round(p.price/((p.w/100)*(p.l/100)));c.insertAdjacentHTML("beforeend",`<div class="prod" data-sku="${p.sku}"><div class="sw" style="background-image:url('${svgTile(p)}')${isPano(p)?";background-size:100% 100%":""}"></div><div class="d"><b>${p.name} <span class="muted" style="font-weight:400">${p.color}</span></b><small>${isPano(p)?"lés de 70 cm, hauteur sur mesure":`${p.w} cm × ${p.l/100} m${p.rep?" · raccord "+p.rep+" cm"+(p.match==="half_drop"?" sauté":""):" · sans raccord"}`}</small><small>${p.mat} · feu ${p.fire} · ${p.lead} j</small></div><div class="pr"><b>${chf(p.price)}</b><small>${isPano(p)?"par m²":"par rouleau · "+chf(m2)+"/m²"}</small></div></div>`);});});
+  c.querySelectorAll(".prod").forEach(el=>el.onclick=()=>openSheet(el.dataset.sku));}
+$("search").addEventListener("input",e=>renderCatalog(e.target.value));
+function openSheet(sku){const p=CATALOG.find(x=>x.sku===sku);const m2=isPano(p)?p.price:Math.round(p.price/((p.w/100)*(p.l/100)));$("sheet").innerHTML=`<div class="sw" style="background-image:url('${svgTile(p)}')${isPano(p)?";background-size:100% 100%":""}"></div><div class="brandline">${p.brand}</div><div class="serif" style="font-size:28px">${p.name} <span style="opacity:.7">${p.color}</span></div>
+  <div class="spec"><div><small>Prix indicatif</small>${chf(p.price)} ${isPano(p)?"/ m²":"/ rouleau"}</div><div><small>Au m²</small>${chf(m2)}</div><div><small>Format</small>${isPano(p)?"lés 70 cm, sur mesure":`${p.w} cm × ${p.l/100} m`}</div><div><small>Raccord</small>${p.rep?p.rep+" cm "+(p.match==="half_drop"?"sauté":"droit"):"libre"}</div><div><small>Matière</small>${p.mat}</div><div><small>Classement feu</small>${p.fire}</div><div><small>Délai</small>${p.lead} jours</div><div><small>Référence</small>${p.sku}</div></div>
+  <div class="row" style="margin-top:8px"><button class="btn block" id="sheetViz">${S.img?"Voir sur le dernier mur":"Photographier un mur avec ce papier"}</button><button class="btn ghost" id="sheetClose">Fermer</button></div>`;
+  $("sheet").classList.add("open");$("dim").classList.add("open");$("sheetClose").onclick=closeSheet;$("dim").onclick=closeSheet;$("sheetViz").onclick=()=>{S.sel=p;closeSheet();if(S.img){show("viz");setTimeout(()=>{const el=$("roulette").querySelector(`.ritem[data-i="${CATALOG.indexOf(p)}"]`);el&&el.scrollIntoView({block:"center"});select(CATALOG.indexOf(p));},60);}else show("home");};}
+function closeSheet(){$("sheet").classList.remove("open");$("dim").classList.remove("open");}
+function renderProjects(){let list=[];try{list=JSON.parse(localStorage.getItem("wallscan.projects")||"[]");}catch(e){}const b=$("projects");if(!list.length){b.innerHTML=`<div class="card"><b>Aucun projet enregistré</b><p class="muted">Photographie un mur, choisis un papier, puis « Enregistrer le projet » depuis le devis.</p></div>`;return;}
+  b.innerHTML=list.map(x=>{const p=CATALOG.find(c=>c.sku===x.sel)||{};return`<div class="prod"><div class="sw" style="background-image:url('${p.sku?svgTile(p):""}')"></div><div class="d"><b>${p.brand||""} ${p.name||x.sel}</b><small>Mur ${x.w} × ${x.h} cm · ${new Date(x.at).toLocaleDateString("fr-CH")}</small><small>${x.number?"Devis n° "+x.number:"Brouillon"}</small></div><div class="pr"><b>${chf(x.total)}</b><small>TTC</small></div></div>`;}).join("");}
+
+// ============================================================ AUTO-TEST
+(function selftest(){const C=[
+ ["A — Casamance Lina 70 cm, mur 400×250 libre",{w:400,h:250,openings:[]},CATALOG[0],{rollCount:2,area:10}],
+ ["B — Casamance Désirade raccord sauté 64/32, mur 400×250",{w:400,h:250,openings:[]},CATALOG[4],{rollCount:4,area:10}],
+ ["C — Élitis Kari 100 cm, mur 350×260, porte 90×210 non déduite",{w:350,h:260,openings:[{w:90,h:210}]},CATALOG[8],{rollCount:2,area:9.1}],
+ ["D — Casamance Légendes raccord 70, mur 500×245, fenêtre 180×140 déduite",{w:500,h:245,openings:[{w:180,h:140}]},CATALOG[5],{rollCount:4,area:9.73}],
+ ["E — Les Dominotiers Misty Forest, mur 300×250",{w:300,h:250,openings:[]},CATALOG[12],{panoM2:9.1,area:7.5}]];
+ let out="",ok=0;for(const[id,w,p,exp]of C){const q=quote(w,p,{pose:true,discountPct:0});const r=q.rolls;const pass=(exp.rollCount===undefined||r.rollCount===exp.rollCount)&&(exp.panoM2===undefined||Math.abs(r.panoM2-exp.panoM2)<0.001)&&Math.abs(r.area-exp.area)<0.001;ok+=pass;out+=`${pass?"✓":"✗"} ${id} → ${isPano(p)?r.panoM2+" m²":r.rollCount+" rouleaux"}, ${r.area} m², total ${chf(q.total)}\n`;}
+ $("selftest").textContent=`${ok}/${C.length} cas conformes\n`+out;})();
+renderCatalog();buildRoulette();renderOpenings();
+</script>
+</body>
+</html>

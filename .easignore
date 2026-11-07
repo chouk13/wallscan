@@ -1,0 +1,18 @@
+# Fichiers exclus de l'archive envoyée à EAS Build (lu à la racine du dépôt git, syntaxe .gitignore).
+# EAS archive tout le monorepo (pnpm workspace) : on retire ce qui est inutile au build Android de apps/mobile-test.
+node_modules/
+**/node_modules/
+.turbo/
+**/.turbo/
+**/coverage/
+**/.next/
+**/dist/
+apps/desktop/src-tauri/target/
+docs/
+supabase/
+.github/
+.claude/
+*.log
+.env
+.env.*
+!.env.example

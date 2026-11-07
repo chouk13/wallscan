@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mire WallScan · Soufflet Décoration — à imprimer à 100 %</title>
+<!--
+  Mire de mesure WallScan, v1 (docs/specs/mire.md). Toutes les cotes sont en millimètres CSS : la page imprimée à 100 %
+  (sans « ajuster à la page ») reproduit exactement les dimensions physiques. Cadre noir de 10 mm, bord extérieur 190 × 277 mm.
+  Le PDF (mire-wallscan.pdf) est généré par scripts/build-mire.py (Playwright, Chrome) et ses cotes sont vérifiées par rasterisation.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { width: 210mm; height: 297mm; position: relative; overflow: hidden; color: #1A1614;
+    font-family: "EB Garamond", Georgia, "Times New Roman", serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @media screen { html { background: #E8E0D2; } body { margin: 12mm auto; box-shadow: 0 6px 24px rgba(0,0,0,.18); } }
+  .abs { position: absolute; }
+  /* Cadre : bord extérieur 190 × 277 mm à (10, 10) mm ; bande noire de 10 mm ; intérieur blanc 170 × 257 mm à (20, 20) mm.
+     Deux boîtes positionnées en mm (et non une bordure CSS) : Chrome arrondit les largeurs de bordure au pixel entier. */
+  .frame { left: 10mm; top: 10mm; width: 190mm; height: 277mm; background: #000; }
+  .frame-in { left: 20mm; top: 20mm; width: 170mm; height: 257mm; background: #fff; }
+  /* Repères d'orientation : 15 mm, à 10 mm du bord intérieur du cadre. Carré en haut à gauche, disques ailleurs. */
+  .mark { width: 15mm; height: 15mm; background: #000; }
+  .mark.tl { left: 30mm; top: 30mm; }
+  .mark.tr { left: 165mm; top: 30mm; border-radius: 50%; }
+  .mark.bl { left: 30mm; top: 252mm; border-radius: 50%; }
+  .mark.br { left: 165mm; top: 252mm; border-radius: 50%; }
+  /* Code 5 × 5, cases de 10 mm, 50 × 50 mm centré sur la page : (80, 123.5) mm. Zone de silence blanche ≥ 10 mm tout autour. */
+  .code { left: 80mm; top: 123.5mm; width: 50mm; height: 50mm; display: grid; grid-template-columns: repeat(5, 10mm); grid-auto-rows: 10mm; }
+  .code i { display: block; width: 10mm; height: 10mm; }
+  .code i.b { background: #000; }
+  /* Texte sous le code */
+  .txt { left: 30mm; right: 30mm; top: 186mm; text-align: center; }
+  .txt h1 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 300; font-size: 19pt; line-height: 1.15; margin: 0; letter-spacing: 0; }
+  .txt h1 span { font-weight: 400; }
+  .txt p { font-size: 10.5pt; line-height: 1.4; margin: 3mm 0 0; }
+  .txt .lbl { display: block; margin-top: 3.5mm; font-size: 8pt; letter-spacing: 1.8pt; text-transform: uppercase; color: #2E2823; }
+  /* Règle de contrôle : trait de 100 mm exactement, de x = 55 à x = 155 mm, à y = 228 mm. Graduations tous les 10 mm. */
+  .ruler { left: 55mm; top: 228mm; width: 100mm; height: 9mm; }
+  .ruler .bar { position: absolute; left: 0; top: 0; width: 100mm; height: 0.4mm; background: #000; }
+  .ruler .tick { position: absolute; top: 0; width: 0.3mm; height: 3mm; background: #000; margin-left: -0.15mm; }
+  .ruler .tick.major { height: 4.5mm; }
+  .ruler .tick:first-of-type { margin-left: 0; }
+  .ruler .tick.end { margin-left: -0.3mm; }
+  .ruler .n { position: absolute; top: 5mm; font-size: 7.5pt; line-height: 1; transform: translateX(-50%); white-space: nowrap; }
+  .ruler .n.end { transform: translateX(-50%); }
+  .cap { left: 30mm; right: 30mm; top: 239mm; text-align: center; font-size: 8pt; line-height: 1.3; color: #2E2823; }
+  .ver { left: 60mm; right: 60mm; top: 258.5mm; text-align: center; font-size: 6.5pt; letter-spacing: 1.4pt; text-transform: uppercase; color: #2E2823; }
+</style>
+</head>
+<body>
+  <div class="abs frame" aria-hidden="true"></div><div class="abs frame-in" aria-hidden="true"></div>
+  <i class="abs mark tl" aria-hidden="true"></i><i class="abs mark tr" aria-hidden="true"></i>
+  <i class="abs mark bl" aria-hidden="true"></i><i class="abs mark br" aria-hidden="true"></i>
+
+  <!-- Motif fixe (ligne par ligne, 1 = noir) : 10110 / 01001 / 11010 / 00101 / 10111 — asymétrique sous les 8 transformations du carré -->
+  <div class="abs code" role="img" aria-label="Code d'identification WallScan">
+    <i class="b"></i><i></i><i class="b"></i><i class="b"></i><i></i>
+    <i></i><i class="b"></i><i></i><i></i><i class="b"></i>
+    <i class="b"></i><i class="b"></i><i></i><i class="b"></i><i></i>
+    <i></i><i></i><i class="b"></i><i></i><i class="b"></i>
+    <i class="b"></i><i></i><i class="b"></i><i class="b"></i><i class="b"></i>
+  </div>
+
+  <div class="abs txt">
+    <h1>Mire WallScan <span>·</span> Soufflet Décoration</h1>
+    <p>Fixez cette feuille à plat au milieu du mur, à hauteur des yeux.<br>Photographiez le mur entier, de face.</p>
+    <span class="lbl">Imprimer à 100 % — ne pas ajuster à la page</span>
+  </div>
+
+  <div class="abs ruler" role="img" aria-label="Règle de contrôle de 100 millimètres">
+    <div class="bar"></div>
+    <i class="tick major" style="left:0"></i><i class="tick" style="left:10mm"></i><i class="tick" style="left:20mm"></i><i class="tick" style="left:30mm"></i><i class="tick" style="left:40mm"></i>
+    <i class="tick major" style="left:50mm"></i><i class="tick" style="left:60mm"></i><i class="tick" style="left:70mm"></i><i class="tick" style="left:80mm"></i><i class="tick" style="left:90mm"></i><i class="tick major end" style="left:100mm"></i>
+    <span class="n" style="left:0">0</span><span class="n" style="left:50mm">5</span><span class="n end" style="left:100mm">10 cm</span>
+  </div>
+  <p class="abs cap">Règle de contrôle : ce trait doit mesurer exactement 100 mm une fois imprimé. Sinon, réglez l'impression sur « taille réelle ».</p>
+  <p class="abs ver">Mire v1 · cadre 190 × 277 mm · code 5 × 5</p>
+</body>
+</html>

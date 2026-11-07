@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- WallScan — marque générée par scripts/gen-mobile-assets.mjs (source de vérité : ce script) -->
+  <rect width="1024" height="1024" fill="#161616"/>
+  <g id="W"><polygon fill="#F3F2EE" points="247.8,378.9 321.5,378.9 398.0,645.1 324.3,645.1"/><polygon fill="#F3F2EE" points="420.9,416.2 494.6,416.2 398.0,645.1 324.3,645.1"/><polygon fill="#F3F2EE" points="420.9,416.2 494.6,416.2 591.2,645.1 517.4,645.1"/><polygon fill="#F3F2EE" points="593.9,378.9 667.6,378.9 591.2,645.1 517.4,645.1"/></g>
+  <polygon fill="#B08D57" points="702.5,571.4 776.2,571.4 776.2,645.1 702.5,645.1"/>
+</svg>

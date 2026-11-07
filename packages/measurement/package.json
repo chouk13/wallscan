@@ -1,0 +1,32 @@
+{
+  "name": "@wallscan/measurement",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Mesure physique du mur : photo + référence (mire / A4), homographie, distorsion, plinthes, ouvertures ; saisie manuelle (§4.1)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src test bench",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "build": "tsc --noEmit",
+    "build:bundle": "esbuild src/index.ts --bundle --format=iife --global-name=WSMeasure --target=es2020 --outfile=dist/wsmeasure.iife.js --log-level=warning && node scripts/check-bundle.mjs",
+    "bench:build": "esbuild bench/run.ts --bundle --platform=node --format=esm --outfile=dist/bench.mjs --log-level=warning && esbuild bench/perfect.ts --bundle --platform=node --format=esm --outfile=dist/perfect.mjs --log-level=warning",
+    "bench": "pnpm bench:build && node dist/bench.mjs --n=500 --seed=20261107 --json=dist/bench-results.json --out=../../docs/reports/measurement-synthetic-bench.md",
+    "bench:report": "node dist/bench.mjs --fromJson=dist/bench-results.json --out=../../docs/reports/measurement-synthetic-bench.md",
+    "bench:perfect": "pnpm bench:build && node dist/perfect.mjs 500"
+  },
+  "dependencies": {
+    "@wallscan/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.8",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    // Noyaux d'image : indexation calculée de tableaux typés partout ; la sécurité vient des bornes explicites et des tests (100 %).
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src", "test", "bench"]
+}

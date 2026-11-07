@@ -1,0 +1,73 @@
+{
+ "page_px": [
+  2479,
+  3508
+ ],
+ "page_mm": [
+  209.889,
+  297.011
+ ],
+ "raster": "pdftoppm 300 dpi",
+ "frame_left": 10.075,
+ "frame_top": 10.075,
+ "frame_outer_w": 189.907,
+ "frame_outer_h": 277.029,
+ "frame_thickness_left": 9.991,
+ "frame_thickness_right": 9.991,
+ "frame_thickness_top": 9.991,
+ "frame_thickness_bottom": 10.075,
+ "frame_thickness": 10.012,
+ "marker_tl": [
+  29.911,
+  29.911,
+  15.071,
+  15.071
+ ],
+ "marker_tr": [
+  165.165,
+  29.911,
+  14.817,
+  15.071
+ ],
+ "marker_bl": [
+  29.911,
+  251.911,
+  15.071,
+  15.071
+ ],
+ "marker_br": [
+  165.165,
+  251.911,
+  14.817,
+  15.071
+ ],
+ "marker": 14.944,
+ "marker_inset_from_inner_edge": 9.845,
+ "code_bbox": [
+  79.991,
+  123.575,
+  49.953,
+  50.038
+ ],
+ "code_size": 49.996,
+ "code_cell": 9.991,
+ "code_bits": "1011001001110100010110111",
+ "ruler": 99.991,
+ "page_mm_w": 209.889,
+ "page_mm_h": 297.011,
+ "tolerance_mm": 0.5,
+ "ok": true,
+ "errors": [],
+ "nominal_mm": {
+  "frame_outer_w": 190.0,
+  "frame_outer_h": 277.0,
+  "frame_left": 10.0,
+  "frame_top": 10.0,
+  "frame_thickness": 10.0,
+  "marker": 15.0,
+  "marker_inset_from_inner_edge": 10.0,
+  "code_size": 50.0,
+  "code_cell": 10.0,
+  "ruler": 100.0
+ }
+}

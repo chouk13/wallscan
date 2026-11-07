@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "WallScan", "slug": "wallscan", "scheme": "wallscan", "version": "0.0.1", "orientation": "default",
+    "ios": { "bundleIdentifier": "com.nlpgenerator.wallscan", "infoPlist": { "NSCameraUsageDescription": "Photographier le mur du client pour y visualiser un papier peint." } },
+    "android": { "package": "com.nlpgenerator.wallscan", "permissions": ["CAMERA"] },
+    "plugins": ["expo-router", "expo-camera", "expo-sqlite"],
+    "updates": { "url": "" },
+    "runtimeVersion": { "policy": "appVersion" }
+  }
+}

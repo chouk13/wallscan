@@ -1,0 +1,286 @@
+{
+  "_readme": "Cas de référence du calepinage lé par lé, calculés À LA MAIN (voir `explanation`). Rouleau 53 × 1005 cm, marges 5 + 5 cm, seuil de déduction 1 m² et rouleau de réserve si raccord, sauf mention. `expected.simpleRollCount` = formule simple §5.1 appliquée au même nombre de lés (hauteur maximale) ; quand elle diffère du calepinage, l'écart est expliqué.",
+  "walls": [
+    {
+      "id": "simple_wall",
+      "label": "Mur 400 × 250, uni libre, sans ouverture (= cas A)",
+      "explanation": "8 lés (400/53 = 7,55) de 260 cm (250 + 5 + 5). Un rouleau de 1005 cm donne 3 lés (780 cm, chute 225). 8 lés → 3 rouleaux (3 + 3 + 2), chute 225 + 225 + 485 = 935 cm. Identique à la formule simple.",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 3, "rollsUsed": 3, "simpleRollCount": 3, "stripCount": 8, "pieceCount": 8, "billableAreaM2": 10, "wasteTotalCm": 935, "phaseOutCm": 0 }
+    },
+    {
+      "id": "door_above_piece",
+      "label": "Mur 350 × 260, porte 90 × 210 positionnée (x = 200, du sol) ; seuil 2 m² → non déduite (= cas C positionné)",
+      "explanation": "7 lés (350/53 = 6,6). La porte (x 200–290) couvre entièrement le lé 5 (212–265) : il ne reste que 50 cm au-dessus → morceau de 60 cm. Les 6 autres lés font 270 cm. Rouleau 1 : 3 × 270 = 810 + 60 = 870 (chute 135). Rouleau 2 : 3 × 270 (chute 195). 2 rouleaux au lieu de 3 pour la formule simple (7 lés à 3 par rouleau). Porte 1,89 m² ≤ 2 m² : surface 9,10 m² inchangée.",
+      "input": {
+        "wall": { "widthCm": 350, "heightLeftCm": 260, "heightRightCm": 260, "openings": [{ "id": "p1", "kind": "door", "rect": { "x": 200, "y": 50, "w": 90, "h": 210 }, "confidence": 1, "source": "user" }], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 2, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 2, "rollsUsed": 2, "simpleRollCount": 3, "stripCount": 7, "pieceCount": 7, "billableAreaM2": 9.1, "wasteTotalCm": 330 }
+    },
+    {
+      "id": "window_two_pieces",
+      "label": "Mur 400 × 250, fenêtre 120 × 140 (x = 150, haut à 15 cm du plafond) couvrant deux lés",
+      "explanation": "La fenêtre (x 150–270) couvre entièrement les lés 4 (159–212) et 5 (212–265) ; les lés 3 et 6 ne sont couverts qu'en partie → lés entiers. Lés 4 et 5 : 15 cm au-dessus → 25 cm, 95 cm en dessous → 105 cm. Morceaux : 6 × 260, 2 × 25, 2 × 105 = 1820 cm. Rouleau 1 : 260 × 3 + 25 + 105 + 25 = 935 (chute 70) ; rouleau 2 : 105 + 260 × 3 = 885 (chute 120). 2 rouleaux (formule simple : 3). Surface : 10 − 1,68 (> 1 m²) = 8,32 m².",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [{ "id": "f1", "kind": "window", "rect": { "x": 150, "y": 15, "w": 120, "h": 140 }, "confidence": 0.9, "source": "auto" }], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 2, "rollsUsed": 2, "simpleRollCount": 3, "stripCount": 8, "pieceCount": 10, "billableAreaM2": 8.32, "wasteTotalCm": 190 }
+    },
+    {
+      "id": "two_windows",
+      "label": "Mur 500 × 250, deux fenêtres 100 × 120 (x = 60 et x = 330, haut à 30 cm)",
+      "explanation": "10 lés. Fenêtre A (60–160) couvre le lé 3 (106–159) ; fenêtre B (330–430) couvre le lé 8 (371–424). Chacun : 30 cm au-dessus → 40 cm, 100 cm en dessous → 110 cm. Morceaux : 8 × 260 + 2 × 40 + 2 × 110 = 2380 cm. Rouleau 1 : 260, 260, 40, 110, 260, 40 = 970 ; rouleau 2 : 260, 260, 260, 110 = 890 ; rouleau 3 : 260, 260. 3 rouleaux (formule simple : 10 lés / 3 = 4). Surface : 12,5 − 2 × 1,2 = 10,10 m².",
+      "input": {
+        "wall": { "widthCm": 500, "heightLeftCm": 250, "heightRightCm": 250, "openings": [
+          { "id": "fa", "kind": "window", "rect": { "x": 60, "y": 30, "w": 100, "h": 120 }, "confidence": 1, "source": "user" },
+          { "id": "fb", "kind": "window", "rect": { "x": 330, "y": 30, "w": 100, "h": 120 }, "confidence": 1, "source": "user" }
+        ], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 3, "rollsUsed": 3, "simpleRollCount": 4, "stripCount": 10, "pieceCount": 12, "billableAreaM2": 10.1, "wasteTotalCm": 635 }
+    },
+    {
+      "id": "french_door_skipped",
+      "label": "Mur 400 × 250, porte-fenêtre 160 × 250 pleine hauteur (x = 120)",
+      "explanation": "La porte-fenêtre (x 120–280) couvre entièrement les lés 4 (159–212) et 5 (212–265) du plafond au sol → lés sautés, aucun papier. Les lés 3 et 6, couverts en partie, restent entiers. 6 lés de 260 → 2 rouleaux (identique à la formule simple sur 6 lés ; 3 avec les 8 lés de ceil(400/53)). Surface : 10 − 4 = 6 m².",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [{ "id": "pf", "kind": "french_door", "rect": { "x": 120, "y": 0, "w": 160, "h": 250 }, "confidence": 1, "source": "user" }], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 2, "rollsUsed": 2, "simpleRollCount": 2, "stripCount": 6, "pieceCount": 6, "billableAreaM2": 6, "wasteTotalCm": 450, "skipped": [3, 4], "skipReason": "french_door" }
+    },
+    {
+      "id": "baseboard_on_8cm",
+      "label": "Mur 400 × 250 avec plinthes de 8 cm (hauteur mesurée)",
+      "explanation": "Le papier s'arrête en haut de la plinthe : 250 − 8 = 242 cm utiles → lés de 252 cm. 3 par rouleau (756 cm). 8 lés → 3 rouleaux, chute 249 + 249 + 501 = 999 cm. Surface : 4 × 2,42 = 9,68 m².",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": true, "heightCm": 8 } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 3, "rollsUsed": 3, "simpleRollCount": 3, "stripCount": 8, "pieceCount": 8, "billableAreaM2": 9.68, "wasteTotalCm": 999, "stripHeightCm": 242 }
+    },
+    {
+      "id": "baseboard_missing",
+      "label": "Plinthes activées sans hauteur → refus",
+      "explanation": "Règle client absolue : jamais de hauteur de plinthe par défaut. `enabled` vrai et `heightCm` null → `error: baseboard_height_missing`, aucun lé, trace explicite.",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": true, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "error": "baseboard_height_missing", "rollCount": 0, "rollsUsed": 0, "simpleRollCount": 0, "stripCount": 0, "pieceCount": 0, "billableAreaM2": 0, "wasteTotalCm": 0 }
+    },
+    {
+      "id": "trapezoid",
+      "label": "Mur 400 cm, 250 cm à gauche et 258 cm à droite (trapèze)",
+      "explanation": "Hauteur interpolée h(x) = 250 + 0,02·x ; chaque lé prend la hauteur de son bord droit (max) : 251,1 / 252,1 / 253,2 / 254,2 / 255,3 / 256,4 / 257,4 / 258 cm, + 10 cm de marges. Ordre naturel : 261,1 + 262,1 + 263,2 = 786,4 ; 264,2 + 265,3 + 266,4 = 795,9 ; 267,4 + 268 = 535,4 → 3 rouleaux (formule simple sur 268 : 3). Surface = 400 × (250 + 258)/2 = 10,16 m².",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 258, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 3, "rollsUsed": 3, "simpleRollCount": 3, "stripCount": 8, "pieceCount": 8, "billableAreaM2": 10.16, "wasteTotalCm": 897.3, "stripHeights": [251.1, 252.1, 253.2, 254.2, 255.3, 256.4, 257.4, 258] }
+    },
+    {
+      "id": "straight_64",
+      "label": "Mur 400 × 250, raccord droit 64 cm (= cas B)",
+      "explanation": "8 lés de 260 cm, tous au même motif (phase 0 au plafond). Sur un rouleau, le 1er lé part au début (0 perte), les suivants attendent le prochain raccord : 260 → 320 → chaque lé suivant coûte 320 cm. 260 + 320 + 320 = 900 ≤ 1005, un 4e dépasserait → 3 par rouleau → 3 rouleaux découpés + 1 de réserve = 4, comme la formule simple (320 cm par lé, 3 par rouleau, 3 + 1).",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 64, "matchType": "straight", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 4, "rollsUsed": 3, "simpleRollCount": 4, "stripCount": 8, "pieceCount": 8, "billableAreaM2": 10, "wasteTotalCm": 935, "phaseOutCm": 0, "waitCm": 60 }
+    },
+    {
+      "id": "half_drop_E",
+      "label": "Mur 300 × 250, raccord sauté 53 / décalage 26,5 (= cas E)",
+      "explanation": "6 lés de 260 cm, phases alternées 0 / 26,5 cm. Attente entre deux lés alternés : 31,5 cm (260 + 31,5 = 291,5 = hauteur de la formule simple). 260 + 291,5 + 291,5 = 843 ≤ 1005 → 3 par rouleau → 2 rouleaux + 1 de réserve = 3, comme la formule simple. 6 lés (pair) → motif en sortie 0.",
+      "input": {
+        "wall": { "widthCm": 300, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 53, "matchType": "half_drop", "offsetCm": 26.5, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 3, "rollsUsed": 2, "simpleRollCount": 3, "stripCount": 6, "pieceCount": 6, "billableAreaM2": 7.5, "wasteTotalCm": 450, "phaseOutCm": 0, "waitCm": 31.5 }
+    },
+    {
+      "id": "half_drop_odd_strips",
+      "label": "Mur 370 × 250, raccord sauté 64 / 32, 7 lés (impair) → motif en sortie 32 cm",
+      "explanation": "7 lés de 260 cm, phases 0 / 32 alternées. Attente entre lés alternés : (32 + 60) mod 64 = 28 cm → 260 + 288 + 288 = 836 ≤ 1005 → 3 par rouleau → 3 rouleaux découpés (3 + 3 + 1) + 1 réserve = 4. La formule simple compte 32 cm de décalage sur CHAQUE lé (352 cm, 2 par rouleau) : 4 + 1 = 5. Le mur suivant commence sur la phase 32 cm (7 lés : le 8e serait décalé).",
+      "input": {
+        "wall": { "widthCm": 370, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 64, "matchType": "half_drop", "offsetCm": 32, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 4, "rollsUsed": 3, "simpleRollCount": 5, "stripCount": 7, "pieceCount": 7, "billableAreaM2": 9.25, "wasteTotalCm": 1195, "phaseOutCm": 32, "waitCm": 28 }
+    },
+    {
+      "id": "centered_axis_70",
+      "label": "Mur 420 × 250, lés de 70 cm centrés sur l'axe du mur",
+      "explanation": "Départ coin gauche : 420/70 = 6 lés exactement (2 rouleaux). Centré : lé central 175–245, puis 3 lés à gauche (175/70 = 2,5 → 3) et 3 à droite → 7 lés ; les lés extrêmes ne font que 35 cm de large mais consomment un lé entier. 7 lés de 260 → 3 rouleaux : le centrage coûte un rouleau.",
+      "input": {
+        "wall": { "widthCm": 420, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 70, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "centered", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 3, "rollsUsed": 3, "simpleRollCount": 3, "stripCount": 7, "pieceCount": 7, "billableAreaM2": 10.5, "wasteTotalCm": 1195, "leftStartRollCount": 2, "firstStrip": [0, 35], "lastStrip": [385, 420] }
+    },
+    {
+      "id": "centered_at_point",
+      "label": "Mur 400 × 250, lé centré sur un point (100 cm, au-dessus d'un meuble)",
+      "explanation": "Lé central 73,5–126,5 ; à gauche 73,5/53 = 1,39 → 2 lés (0–20,5 et 20,5–73,5) ; à droite (400 − 126,5)/53 = 5,16 → 6 lés. 9 lés de 260 → 3 rouleaux pleins (3 × 3), chute 3 × 225 = 675 cm.",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "centered", "centerAtCm": 100, "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 3, "rollsUsed": 3, "simpleRollCount": 3, "stripCount": 9, "pieceCount": 9, "billableAreaM2": 10, "wasteTotalCm": 675, "firstStrip": [0, 20.5], "centerStrip": [2, 73.5, 126.5] }
+    },
+    {
+      "id": "panoramic_m2",
+      "label": "Panoramique vendu au m², lés de 70 cm, mur 400 × 250",
+      "explanation": "Pas de rouleau : 6 lés (400/70 = 5,71) × 0,70 m × 2,60 m (hauteur + marges) = 10,92 m² de décor à commander. rollCount = 0, surface de pose 10 m².",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 70, "rollLengthCm": 0, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "m2", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 0, "rollsUsed": 0, "simpleRollCount": 0, "stripCount": 6, "pieceCount": 6, "billableAreaM2": 10, "wasteTotalCm": 0, "m2Decor": 10.92 }
+    },
+    {
+      "id": "door_straight_32",
+      "label": "Mur 350 × 260, porte 90 × 210 (x = 200), raccord droit 32 cm",
+      "explanation": "Lés entiers : 270 cm ; avec le raccord, chaque lé suivant coûte 288 cm (attente 18) : 270 + 288 + 288 = 846 → 3 par rouleau. Le lé 5 (au-dessus de la porte) ne fait que 60 cm et son motif part de 0 (haut du mur) : il se place après le 3e lé du rouleau 1 (846 + 18 + 60 = 924 ≤ 1005). 2 rouleaux découpés + 1 réserve = 3 ; formule simple : 7 lés de 288, 3 par rouleau → 3 + 1 = 4. Porte 1,89 m² > 1 m² → surface 7,21 m².",
+      "input": {
+        "wall": { "widthCm": 350, "heightLeftCm": 260, "heightRightCm": 260, "openings": [{ "id": "p1", "kind": "door", "rect": { "x": 200, "y": 50, "w": 90, "h": 210 }, "confidence": 1, "source": "user" }], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 32, "matchType": "straight", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 3, "rollsUsed": 2, "simpleRollCount": 4, "stripCount": 7, "pieceCount": 7, "billableAreaM2": 7.21, "wasteTotalCm": 330 }
+    },
+    {
+      "id": "excluded_full_height",
+      "label": "Mur 400 × 250, coffrage de cheminée 100 × 250 exclu (x = 150)",
+      "explanation": "La zone exclue (150–250) couvre entièrement le lé 4 (159–212) → sauté ; le lé 5 (212–265) n'est couvert qu'en partie → entier. 7 lés → 3 rouleaux. La zone exclue est toujours déduite : 10 − 2,5 = 7,5 m².",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [{ "id": "ch", "kind": "excluded", "rect": { "x": 150, "y": 0, "w": 100, "h": 250 }, "confidence": 1, "source": "user" }], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 3, "rollsUsed": 3, "simpleRollCount": 3, "stripCount": 7, "pieceCount": 7, "billableAreaM2": 7.5, "wasteTotalCm": 1195, "skipped": [3], "skipReason": "full_height_opening" }
+    },
+    {
+      "id": "radiator_never_deducted",
+      "label": "Mur 400 × 250, radiateur 100 × 60 sous une fenêtre absente",
+      "explanation": "Le radiateur est devant le mur : le papier passe derrière, il ne coupe pas les lés et n'est jamais déduit. Identique au mur nu : 8 lés, 3 rouleaux, 10 m².",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [{ "id": "r1", "kind": "radiator", "rect": { "x": 150, "y": 180, "w": 100, "h": 60 }, "confidence": 1, "source": "auto" }], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 3, "rollsUsed": 3, "simpleRollCount": 3, "stripCount": 8, "pieceCount": 8, "billableAreaM2": 10, "wasteTotalCm": 935 }
+    },
+    {
+      "id": "min_order_two_rolls",
+      "label": "Rouleau large 70 cm, lot de 2, mur 420 × 250 libre (= cas F)",
+      "explanation": "6 lés de 260, 3 par rouleau → 2 rouleaux ; minimum fournisseur 2 → inchangé. 10,5 m².",
+      "input": {
+        "wall": { "widthCm": 420, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 70, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 2 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 2, "rollsUsed": 2, "simpleRollCount": 2, "stripCount": 6, "pieceCount": 6, "billableAreaM2": 10.5, "wasteTotalCm": 450 }
+    },
+    {
+      "id": "stacked_openings_between",
+      "label": "Deux niches superposées (120 × 60 à 20 cm et à 120 cm du plafond) → morceau « entre »",
+      "explanation": "Les deux niches couvrent les lés 4 et 5 : 3 morceaux chacun — 20 cm au-dessus (30), 40 cm entre (50), 70 cm en dessous (80). 6 lés entiers + 2 × 160 cm = 1880 cm. Rouleau 1 : 780 + 30 + 50 + 80 + 30 = 970 ; rouleau 2 : 50 + 80 + 780 = 910 → 2 rouleaux (formule simple : 3). Niches 0,72 m² ≤ 1 m² : non déduites, 10 m².",
+      "input": {
+        "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [
+          { "id": "n1", "kind": "niche", "rect": { "x": 150, "y": 20, "w": 120, "h": 60 }, "confidence": 1, "source": "user" },
+          { "id": "n2", "kind": "niche", "rect": { "x": 150, "y": 120, "w": 120, "h": 60 }, "confidence": 1, "source": "user" }
+        ], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 2, "rollsUsed": 2, "simpleRollCount": 3, "stripCount": 8, "pieceCount": 12, "billableAreaM2": 10, "wasteTotalCm": 130, "pieceReasons": ["above_opening", "between", "below_opening"] }
+    },
+    {
+      "id": "tiny_opening_whole_strips_win",
+      "label": "Niche de 9 cm de haut sous un grand raccord sauté (120/60), rouleau court 661 cm : les lés entiers l'emportent",
+      "explanation": "Découper autour d'une ouverture plus basse que les marges (9 < 10 cm) force à attendre un raccord complet entre les deux morceaux : plus cher que le lé entier. Le moteur essaie les deux variantes et garde « lés entiers » : 10 lés de 288 cm (278 + 10), 2 par rouleau avec 12 cm d'attente → 5 rouleaux. Formule simple : 288 → 360 + 60 = 420 cm, 1 par rouleau → 10 rouleaux.",
+      "input": {
+        "wall": { "widthCm": 504, "heightLeftCm": 278, "heightRightCm": 278, "openings": [{ "id": "n", "kind": "niche", "rect": { "x": 144, "y": 177, "w": 293, "h": 9 }, "confidence": 1, "source": "user" }], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 661, "patternRepeatCm": 120, "matchType": "half_drop", "offsetCm": 60, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": false }
+      },
+      "expected": { "rollCount": 5, "rollsUsed": 5, "simpleRollCount": 10, "stripCount": 10, "pieceCount": 10, "billableAreaM2": 14.01, "wasteTotalCm": 425, "allPiecesFull": true, "traceIncludes": "Découpe autour des ouvertures non rentable" }
+    },
+    {
+      "id": "simple_formula_inapplicable",
+      "label": "Rouleau échantillon 300 cm, mur 100 × 280, raccord 64 : la formule simple ne sait pas répondre",
+      "explanation": "Formule simple : 290 cm arrondi au raccord = 320 > 300 → aucun lé par rouleau (simpleRollCount 0). Calepinage : le premier lé d'un rouleau ne perd rien → un lé de 290 par rouleau → 2 rouleaux découpés + 1 réserve = 3.",
+      "input": {
+        "wall": { "widthCm": 100, "heightLeftCm": 280, "heightRightCm": 280, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 300, "patternRepeatCm": 64, "matchType": "straight", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "rollCount": 3, "rollsUsed": 2, "simpleRollCount": 0, "stripCount": 2, "pieceCount": 2, "billableAreaM2": 2.8, "wasteTotalCm": 20 }
+    },
+    {
+      "id": "piece_longer_than_roll",
+      "label": "Mur de 300 cm de haut, rouleau de 300 cm → refus",
+      "explanation": "Un lé de 310 cm (300 + marges) ne tient pas dans un rouleau de 300 cm et un lé ne se raccorde jamais horizontalement → `error: piece_longer_than_roll`. La surface (3 m²) et les lés sont tout de même renseignés.",
+      "input": {
+        "wall": { "widthCm": 100, "heightLeftCm": 300, "heightRightCm": 300, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+        "paper": { "rollWidthCm": 53, "rollLengthCm": 300, "patternRepeatCm": 0, "matchType": "free", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+        "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true }
+      },
+      "expected": { "error": "piece_longer_than_roll", "rollCount": 0, "rollsUsed": 0, "simpleRollCount": 0, "stripCount": 2, "pieceCount": 0, "billableAreaM2": 3, "wasteTotalCm": 0 }
+    }
+  ],
+  "rooms": [
+    {
+      "id": "three_walls_straight",
+      "label": "Pièce de 3 murs (400, 300, 400 × 250), raccord droit 64, même papier",
+      "explanation": "8 + 6 + 8 = 22 lés de 260 cm, tous à la phase 0 (raccord droit : la sortie d'un mur = son entrée). Empaquetage commun : 3 lés par rouleau → 8 rouleaux découpés (7 × 3 + 1) + 1 réserve = 9. Mur par mur : (3 + 1) + (2 + 1) + (3 + 1) = 11. Surface 10 + 7,5 + 10 = 27,5 m².",
+      "inputs": [
+        { "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+          "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 64, "matchType": "straight", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+          "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true } },
+        { "wall": { "widthCm": 300, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+          "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 64, "matchType": "straight", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+          "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true } },
+        { "wall": { "widthCm": 400, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+          "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 64, "matchType": "straight", "offsetCm": 0, "saleUnit": "roll", "minOrderRolls": 1 },
+          "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true } }
+      ],
+      "expected": { "rollCount": 9, "rollsUsed": 8, "separateRollCount": 11, "billableAreaM2": 27.5, "wallRollCounts": [4, 3, 4], "phaseIn": [0, 0, 0] }
+    },
+    {
+      "id": "two_walls_half_drop_chained",
+      "label": "Deux murs (370 et 300 × 250), raccord sauté 64/32 : la phase passe l'angle",
+      "explanation": "Mur 1 : 7 lés (impair), phases 0/32/…/0 → sortie 32. Mur 2 commence donc à 32 et alterne 32/0/32/0/32/0 (6 lés, sortie 32). 13 lés alternés, 3 par rouleau → 5 rouleaux découpés + 1 réserve = 6. Mur par mur : 4 + 3 = 7. Surface 9,25 + 7,5 = 16,75 m².",
+      "inputs": [
+        { "wall": { "widthCm": 370, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+          "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 64, "matchType": "half_drop", "offsetCm": 32, "saleUnit": "roll", "minOrderRolls": 1 },
+          "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true } },
+        { "wall": { "widthCm": 300, "heightLeftCm": 250, "heightRightCm": 250, "openings": [], "baseboard": { "enabled": false, "heightCm": null } },
+          "paper": { "rollWidthCm": 53, "rollLengthCm": 1005, "patternRepeatCm": 64, "matchType": "half_drop", "offsetCm": 32, "saleUnit": "roll", "minOrderRolls": 1 },
+          "settings": { "cutTopCm": 5, "cutBottomCm": 5, "start": "left", "deductAboveM2": 1, "safetyRollIfPattern": true } }
+      ],
+      "expected": { "rollCount": 6, "rollsUsed": 5, "separateRollCount": 7, "billableAreaM2": 16.75, "wallRollCounts": [4, 3], "phaseIn": [0, 32], "wall2Phases": [32, 0, 32, 0, 32, 0] }
+    }
+  ]
+}

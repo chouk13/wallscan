@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.next/
+.turbo/
+coverage/
+.env
+.env.*
+!.env.example
+src-tauri/target/
+.expo/
+*.log
+.DS_Store
+supabase/.temp/

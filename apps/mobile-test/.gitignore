@@ -1,0 +1,20 @@
+# Dossiers natifs générés par `expo prebuild` / EAS (Continuous Native Generation) — ne pas commiter
+android/
+ios/
+
+# Expo / Metro
+.expo/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+
+# Clés et certificats (EAS les garde dans le cloud ; jamais dans le dépôt)
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+credentials.json
+
+# Note : src/prototype-html.ts est GÉNÉRÉ (scripts/build-prototype.mjs) mais COMMITÉ — EAS Build en a besoin.
