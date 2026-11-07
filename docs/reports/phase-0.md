@@ -109,3 +109,14 @@ Livré :
 Reste à faire avant tout chiffre devant un client : **banc réel** (20 murs photographiés avec feuille et mire, lot M7),
 occultation des meubles dans le rendu, les 40 devis de référence Soufflet (statut `ENGINE_VALIDATION_STATUS` toujours
 **NON VALIDÉ**), import du catalogue XML, contrat d'adaptateur Octyzen.
+
+## Addendum 2026-11-07 (22 h) — v5.1 : viseur caméra en direct, hébergement de test GitHub Pages
+
+- Constat : la visionneuse d'artefacts claude.ai interdit la caméra, les capteurs et les téléchargements à toutes les pages
+  (règles du service vérifiées). Le test « en réel » exige une vraie adresse HTTPS.
+- Module : viseur en direct (`getUserMedia` caméra arrière, vidéo entière visible, cadre, niveau, déclencheur), photo plein format par
+  `ImageCapture.takePhoto` (repli : image vidéo), aperçu caméra sur l'accueil dès que la caméra a été autorisée une fois (l'app
+  « s'ouvre sur l'appareil photo », comme demandé), repli automatique sur l'appareil natif (`<input capture>`) si refus ou
+  indisponibilité. Vérifié en Chromium headless avec caméra factice : photo 3840 × 2160 capturée, parcours complet, 0 erreur.
+- Dépôt GitHub `chouk13/wallscan` : `main` = monorepo, `gh-pages` = `dist/` du module ; `scripts/deploy-pages.sh` republie.
+  URL de test : https://chouk13.github.io/wallscan/ (Pages à activer par le propriétaire ; dépôt public requis sur compte gratuit).

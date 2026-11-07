@@ -2,53 +2,42 @@
 
 Owner : `mobile-packager` · Mise à jour : 2026-11-07 · Public : l'utilisateur (NLPGenerator) et le client pilote.
 
-Trois façons d'avoir le prototype sur le téléphone, de la plus rapide à la plus « officielle » :
+Trois façons d'avoir le module sur le téléphone, de la plus rapide à la plus « officielle » :
 
 | Option | Délai | Ce qu'il faut | Ce qu'on obtient |
 |---|---|---|---|
-| **A — Lien web + « Ajouter à l'écran d'accueil »** | 2 minutes | le S24 et Chrome | une icône WallScan qui ouvre le prototype ; caméra, mesure, rendu, devis OK ; **pas de mode hors ligne** |
+| **A — GitHub Pages + « Installer l'application »** | 2 minutes | le S24 et Chrome | une icône WallScan plein écran ; **viseur caméra en direct**, mesure, rendu, devis ; hors ligne partiel (pas de service worker pour l'instant) |
 | **B — APK via EAS Build (cloud Expo)** | ~1 h la première fois (dont 10–20 min d'attente) | un PC Windows ou Mac, un compte expo.dev gratuit | une vraie application installée (icône, splash, plein écran, rotation forcée en paysage pour le rendu) |
 | **C — Google Play, test interne** | plus tard | le compte Play Console NLPGenerator (déjà validé) | installation par le Play Store, mises à jour automatiques |
 
-Dans tous les cas le contenu est le même : le prototype web (`apps/web/public/prototype/index.html`), données **indicatives (démo)**,
-moteur de devis **non validé** par SOUFFLET décoration. Les projets « enregistrés » restent sur le téléphone (pas de serveur).
+Dans tous les cas le contenu est le même : le module web (`apps/web/public/prototype/dist/index.html`), données **indicatives (démo)**,
+moteur de devis **non validé** par SOUFFLET décoration. Les photos et mesures restent sur le téléphone (pas de serveur).
+
+> **Pourquoi pas la page claude.ai ?** La visionneuse d'artefacts claude.ai interdit la caméra, les capteurs et les téléchargements à
+> toutes les pages qu'elle héberge (règles vérifiées le 2026-11-07). Elle sert à montrer le parcours avec le mur de démo ou une photo
+> importée, pas à tester le viseur. Pour le viseur il faut une **vraie adresse HTTPS** : c'est l'option A.
 
 ---
 
-## Option A — tout de suite : le lien dans Chrome
+## Option A — tout de suite : GitHub Pages dans Chrome
 
-1. Sur le S24, ouvre dans **Chrome** le lien du prototype (page hébergée sur claude.ai, transmise par NLPGenerator).
-2. Menu **⋮** (en haut à droite) → **« Ajouter à l'écran d'accueil »** (ou « Installer l'application » si Chrome le propose) → **Ajouter**.
-3. Une icône **WallScan** apparaît sur l'écran d'accueil. Lance-la comme une app.
+Le module est publié sur la branche `gh-pages` du dépôt **github.com/chouk13/wallscan** (dossier `dist/` tel quel + `.nojekyll`).
+Réglage à faire une fois sur github.com : *Settings → Pages → Build and deployment → Source « Deploy from a branch » → `gh-pages` /
+(root)*. Sur un compte GitHub gratuit, Pages exige un dépôt **public**. Adresse : **https://chouk13.github.io/wallscan/**
+(`?mode=pro` pour le mode vendeur). Mise à jour après chaque changement : `scripts/deploy-pages.sh` (reconstruit `dist/` et pousse).
 
-**Ce qui marche**
+1. Sur le S24, ouvre **https://chouk13.github.io/wallscan/** dans **Chrome**.
+2. « Photographier un mur » → « Photographier le mur » : Chrome demande l'autorisation de la caméra **une fois** → le viseur s'ouvre
+   (caméra arrière, niveau, déclencheur). La photo est prise en plein format (`ImageCapture`), puis analysée sur le téléphone.
+3. Menu **⋮** → **« Installer l'application »** (ou « Ajouter à l'écran d'accueil ») → l'icône WallScan ouvre le module plein écran,
+   et l'accueil démarre directement sur le viseur dès que la caméra a été autorisée une fois.
 
-- **Caméra** : la carte « Photographier un mur » ouvre l'appareil photo (Chrome demande l'autorisation la première fois) ; on peut aussi choisir une photo existante.
-- **Mesure** (4 coins, hauteur sous plafond, feuille A4, saisie), **rendu** du papier peint, **roulette** des références, **devis** avec « Pourquoi N rouleaux ? », **copie** du devis, **projets enregistrés** (tant qu'on n'efface pas les données du site dans Chrome).
-- **Rotation** : l'écran « Tourne ton téléphone » attend que tu tournes l'appareil. Active la **rotation automatique** dans les réglages rapides du S24 (icône « Rotation auto. »), sinon utilise « Continuer sans tourner ».
+**Ce qui marche** : viseur en direct, import de photo, feuille A4 / mire (PDF téléchargeable), coins + loupe, plinthes, ouvertures, rendu,
+roulette, lés, fourchette de prix, WhatsApp, rendez-vous.
 
-**Ce qui ne marche pas**
-
-- **Hors ligne** : la page hébergée sur claude.ai ne permet pas d'installer un *service worker* ; sans réseau la page ne s'ouvre pas. Les polices (Fraunces, Hanken Grotesk) viennent aussi du réseau : sans connexion, polices système de remplacement.
-- Le **verrouillage automatique en paysage** ne fonctionne que si la page est ouverte en mode « application » (sans barre d'adresse). Tant que le manifeste PWA n'est pas relié à la page (voir ci-dessous), Chrome ouvre un simple raccourci : il faut tourner le téléphone soi-même.
-- Pas d'icône/splash personnalisés tant que le manifeste n'est pas relié.
-
-**Pour l'équipe — relier le manifeste PWA (déjà préparé, à faire lors de la prochaine refonte d'`index.html`)**
-Les fichiers existent : `apps/web/public/prototype/manifest.webmanifest` et `apps/web/public/prototype/icons/` (192, 512, 512 maskable,
-apple-touch-icon 180). À ajouter dans le `<head>` d'`index.html` et à publier à côté de la page :
-
-```html
-<link rel="manifest" href="./manifest.webmanifest">
-<meta name="theme-color" content="#161616">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-```
-
-Avec le manifeste, Chrome propose « Installer l'application » : ouverture plein écran sans barre d'adresse, icône WallScan, et
-`screen.orientation.lock("landscape")` fonctionne. Toujours **sans hors ligne** sur claude.ai (pas de service worker possible) ;
-le hors ligne viendra avec l'hébergement Next.js (`apps/web`) ou avec l'APK.
+**Limites** : pas de service worker pour l'instant → il faut du réseau pour *ouvrir* la page (ensuite tout tourne en local) ; polices
+Google chargées au premier affichage. Si la caméra est refusée ou indisponible (http, ancien navigateur), le module bascule tout seul sur
+l'appareil photo natif du téléphone (`<input capture>`) : rien n'est bloquant.
 
 ---
 
