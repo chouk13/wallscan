@@ -77,6 +77,13 @@ export const CHECK_DISTORTION_PCT = 2.0;
  * geometry_check_unavailable → « contrôle géométrique impossible » ; baseboard_height_required → « hauteur de plinthe à mesurer ou saisir » ;
  * floor_line_ambiguous → « une autre ligne horizontale existe juste sous le bas du mur : vérifier que le bas est bien le sol » ;
  * distortion_not_estimated → « distorsion de l'objectif non corrigée (lignes du mur peu nettes) ».
+ * Moteur v2 (2026-11-08, seuils docs/quality-thresholds.md « Banc de réalisme ») :
+ * measure_implausible → « dimensions hors des bornes d'un mur : mesure à vérifier, envoi du devis bloqué » ;
+ * reference_ambiguous → « plusieurs objets ressemblent à la feuille : confirmer laquelle » ;
+ * reference_scale_suspect → « la feuille paraît trop grande ou trop petite par rapport au mur » ;
+ * reference_small → « feuille petite sur la photo : se rapprocher » (40–55 px ; < 40 px = reference_too_small) ;
+ * image_soft → « photo un peu floue : reprise conseillée » ; image_blurry → « photo floue : reprendre la photo » ;
+ * distortion_strong → « objectif très déformant (grand-angle) » ; distortion_extreme → « ultra grand-angle : reprendre en ×1 ».
  */
 export const WARN = {
   degenerate: "degenerate_geometry",
@@ -91,5 +98,47 @@ export const WARN = {
   baseboardHeightRequired: "baseboard_height_required",
   floorAmbiguous: "floor_line_ambiguous",
   distortionUnknown: "distortion_not_estimated",
+  measureImplausible: "measure_implausible",
+  referenceAmbiguous: "reference_ambiguous",
+  referenceScaleSuspect: "reference_scale_suspect",
+  referenceSmallWarn: "reference_small",
+  imageSoft: "image_soft",
+  imageBlurry: "image_blurry",
+  distortionStrong: "distortion_strong",
+  distortionExtreme: "distortion_extreme",
 } as const;
+
+/**
+ * Codes qui valent REFUS de la photo (docs/quality-thresholds.md, colonne « Refuser ») : l'UI demande une reprise et bloque
+ * l'envoi du devis tant que la mesure n'a pas été corrigée ou confirmée. Les autres codes sont des avertissements.
+ */
+export const REFUSAL_WARNINGS: readonly string[] = [
+  WARN.measureImplausible, WARN.imageBlurry, WARN.referenceSmall, WARN.distortionExtreme, WARN.degenerate,
+];
+
+/**
+ * Plausibilité d'un mur intérieur (cm) : hauteur 180–450, largeur 100–1 200 (docs/quality-thresholds.md). Hors bornes →
+ * `measure_implausible`. Une fausse référence (autre rectangle clair pris pour la feuille) donne typiquement −60 à −70 %.
+ */
+export const PLAUSIBLE_HEIGHT_CM = { min: 180, max: 450 } as const;
+export const PLAUSIBLE_WIDTH_CM = { min: 100, max: 1200 } as const;
+/**
+ * Cohérence feuille / mur : f = grand côté de la référence (cm) / hauteur du mur rectifié (cm), c.-à-d. la part de la hauteur
+ * du mur redressé occupée par la feuille. A4 : f > 14 % ⇔ mur < 2,12 m ; f < 4 % ⇔ mur > 7,4 m → `reference_scale_suspect`.
+ * (Équivaut à des bornes sur H exprimées en proportion d'image ; plus serré que la plausibilité côté bas, pour signaler tôt
+ * une feuille confondue avec un objet plus grand qu'elle.)
+ */
+export const REF_WALL_FRACTION = { min: 0.04, max: 0.14 } as const;
+/** Petit côté de la feuille (px, image de travail) : < 40 refus (`reference_too_small`), 40–55 avertissement (`reference_small`). */
+export const REFERENCE_WARN_SIDE_PX = 55;
+/** |k1| (modèle de division) : > 0,05 `distortion_strong`, > 0,10 `distortion_extreme` (refus). */
+export const K1_STRONG = 0.05;
+export const K1_EXTREME = 0.1;
+/** Ambiguïté de référence : un second candidat au score > 70 % du meilleur. */
+export const REFERENCE_AMBIGUITY_RATIO = 0.7;
+/** La référence doit être dans le tiers central du mur en largeur et dans [15 % ; 85 %] en hauteur (yeux à 1,4–1,7 m). */
+export const REFERENCE_CENTER_BOX = { xMin: 1 / 3, xMax: 2 / 3, yMin: 0.15, yMax: 0.85 } as const;
+/** Plafonds de confiance de la mesure : code de refus → 0,5 ; autre avertissement de fiabilité → 0,79 (bannière < 0,8). */
+export const CONFIDENCE_CAP_REFUSAL = 0.5;
+export const CONFIDENCE_CAP_WARNING = 0.79;
 export type WarningCode = (typeof WARN)[keyof typeof WARN];

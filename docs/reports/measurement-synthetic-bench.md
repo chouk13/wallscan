@@ -1,6 +1,6 @@
 # Banc synthétique — mesure d'un mur depuis une photo
 
-Généré par `pnpm --filter @wallscan/measurement bench` — 500 cas, graine 20261107, 2026-11-07.
+Généré par `pnpm --filter @wallscan/measurement bench` — 500 cas, graine 20261107, 2026-11-08.
 
 ## Protocole
 
@@ -13,96 +13,99 @@ Généré par `pnpm --filter @wallscan/measurement bench` — 500 cas, graine 20
 
 | Indicateur | Valeur |
 |---|---|
-| Référence détectée (bonne nature, coins < 6 px) | 485 / 500 (97.0 %) |
-| Fausses détections de référence (mauvaise nature ou > 6 px) | 0 |
-| Coins du mur proposés (non nul) | 465 / 500 |
-| Coins du mur à < 3 px / < 10 px de la vérité | 96.8 % / 98.1 % |
-| Cas mesurés automatiquement de bout en bout | 451 / 500 |
-| Temps pipeline par image (p50 / p95) | 482 ms / 685 ms |
-| Temps de rendu par image (p50) | 1157 ms |
+| Référence détectée (bonne nature, coins < 6 px) | 480 / 500 (96.0 %) |
+| Fausses détections de référence (mauvaise nature ou > 6 px) | 7 |
+| Coins du mur proposés (non nul) | 463 / 500 |
+| Coins du mur à < 3 px / < 10 px de la vérité | 98.1 % / 98.1 % |
+| Cas mesurés automatiquement de bout en bout | 444 / 500 |
+| Temps pipeline par image (p50 / p95) | 627 ms / 866 ms |
+| Temps de rendu par image (p50) | 1107 ms |
 
 ## Erreur sur W et H (cas mesurés)
 
 | Série | n | p50 | p95 | max |
 |---|---|---|---|---|
-| mire — largeur W | 233 | 0.01 % | 0.05 % | 0.20 % |
-| mire — hauteur H | 233 | 0.01 % | 0.07 % | 1.93 % |
-| a4 — largeur W | 218 | 0.02 % | 0.16 % | 1.51 % |
-| a4 — hauteur H | 218 | 0.02 % | 0.28 % | 1.85 % |
-| feuille tapée à la main (σ 2 px) — W | 465 | 1.05 % | 3.42 % | 7.68 % |
-| feuille tapée à la main (σ 2 px) — H | 465 | 0.74 % | 2.40 % | 4.62 % |
-| cas mesurés sans avertissement — max(W, H) | 436 | 0.02 % | 0.17 % | 1.93 % |
-| cas mesurés avec avertissement(s) — max(W, H) | 15 | 0.03 % | 0.57 % | 1.23 % |
+| mire — largeur W | 231 | 0.01 % | 0.04 % | 0.11 % |
+| mire — hauteur H | 231 | 0.01 % | 0.04 % | 1.87 % |
+| a4 — largeur W | 213 | 0.02 % | 0.15 % | 0.34 % |
+| a4 — hauteur H | 213 | 0.02 % | 0.20 % | 1.88 % |
+| feuille tapée à la main (σ 2 px) — W | 463 | 1.05 % | 3.40 % | 7.69 % |
+| feuille tapée à la main (σ 2 px) — H | 463 | 0.73 % | 2.40 % | 4.61 % |
+| cas mesurés sans avertissement — max(W, H) | 290 | 0.02 % | 0.15 % | 1.67 % |
+| cas mesurés avec avertissement(s) — max(W, H) | 154 | 0.03 % | 0.34 % | 1.88 % |
 
 | Cible | Résultat |
 |---|---|
-| Feuille A4 détectée : 95 % des cas < 3 % (W et H) | 100.0 % des cas < 3 % (p95 = 0.28 %) |
-| Mire : p95 < 1 % | p95 = 0.10 % |
-| Feuille tapée à la main : 95 % < 5 % | 98.9 % des cas < 5 % |
-| Aucune fausse mesure silencieuse | 0 fausse(s) détection(s) de référence ; 0 quad(s) de mur faux non mesurés ; cas mesurés avec erreur > tolérance affichée sans avertissement : 0 |
+| Feuille A4 détectée : 95 % des cas < 3 % (W et H) | 100.0 % des cas < 3 % (p95 = 0.23 %) |
+| Mire : p95 < 1 % | p95 = 0.06 % |
+| Feuille tapée à la main : 95 % < 5 % | 99.1 % des cas < 5 % |
+| Aucune fausse mesure silencieuse | 7 fausse(s) détection(s) de référence ; 0 quad(s) de mur faux non mesurés ; cas mesurés avec erreur > tolérance affichée sans avertissement : 0 |
 
 ## Par type de mur (cas mesurés, erreur max(W, H))
 
 | Type de mur | Référence | Cas | Détection réf. | p50 | p95 | max |
 |---|---|---|---|---|---|---|
-| white | mire | 74 | 74 / 74 | 0.02 % | 0.07 % | 1.93 % |
-| white | a4 | 83 | 69 / 83 | 0.11 % | 0.36 % | 1.30 % |
-| light | mire | 100 | 100 / 100 | 0.02 % | 0.05 % | 0.19 % |
-| light | a4 | 96 | 95 / 96 | 0.03 % | 0.13 % | 1.72 % |
-| dark | mire | 78 | 78 / 78 | 0.02 % | 0.15 % | 1.02 % |
-| dark | a4 | 69 | 69 / 69 | 0.02 % | 0.73 % | 1.85 % |
+| white | mire | 74 | 74 / 74 | 0.02 % | 0.06 % | 1.87 % |
+| white | a4 | 83 | 67 / 83 | 0.10 % | 0.38 % | 1.30 % |
+| light | mire | 100 | 100 / 100 | 0.02 % | 0.04 % | 0.11 % |
+| light | a4 | 96 | 94 / 96 | 0.03 % | 0.13 % | 1.74 % |
+| dark | mire | 78 | 78 / 78 | 0.02 % | 0.07 % | 0.83 % |
+| dark | a4 | 69 | 67 / 69 | 0.02 % | 0.04 % | 1.88 % |
 
 ## Précision des étapes
 
 | Étape | n | p50 | p95 | max |
 |---|---|---|---|---|
-| Coins de la référence (px, image de travail) | 485 | 0.04 px | 0.28 px | 1.28 px |
-| Coins du mur (px, image de travail) | 465 | 0.10 px | 0.40 px | 20.96 px |
-| Erreur sur k1 (×1000) | 465 | 0.16  | 0.95  | 49.31  |
-| Hauteur de plinthe (cm) | 378 | 0.12 cm | 0.28 cm | 8.31 cm |
-| Incertitude propagée (cas mesurés) | 451 | 0.77 % | 1.49 % | 1.81 % |
+| Coins de la référence (px, image de travail) | 480 | 0.04 px | 0.28 px | 1.28 px |
+| Coins du mur (px, image de travail) | 463 | 0.06 px | 0.24 px | 20.96 px |
+| Erreur sur k1 (×1000) | 463 | 0.06  | 0.37  | 1.89  |
+| Hauteur de plinthe (cm) | 372 | 0.13 cm | 0.25 cm | 8.31 cm |
+| Incertitude propagée (cas mesurés) | 444 | 0.76 % | 1.49 % | 1.81 % |
 
-Plinthe : 378 / 379 proposées automatiquement quand elle existe (cas mesurés) ; 1 proposition(s) sans plinthe réelle ; erreur < 1 cm dans 98.7 % des propositions.
-Calibration de l'incertitude : erreur réelle ≤ incertitude propagée dans 98.2 % des cas mesurés.
+Plinthe : 370 / 372 proposées automatiquement quand elle existe (cas mesurés) ; 1 proposition(s) sans plinthe réelle ; erreur < 1 cm dans 98.7 % des propositions.
+Calibration de l'incertitude : erreur réelle ≤ incertitude propagée dans 98.6 % des cas mesurés.
 
 ## Ouvertures (cas mesurés)
 
 | Indicateur | Valeur |
 |---|---|
-| Ouvertures réelles | 407 |
-| Retrouvées (IoU ≥ 0,5) | 341 (83.8 %) |
-| … avec le bon type | 323 (94.7 % des retrouvées) |
+| Ouvertures réelles | 393 |
+| Retrouvées (IoU ≥ 0,5) | 329 (83.7 %) |
+| … avec le bon type | 310 (94.2 % des retrouvées) |
 | Propositions sans ouverture réelle | 99 |
-| window : retrouvées avec le bon type | 183 / 218 |
-| door : retrouvées avec le bon type | 81 / 106 |
-| radiator : retrouvées avec le bon type | 59 / 83 |
+| window : retrouvées avec le bon type | 172 / 207 |
+| door : retrouvées avec le bon type | 79 / 104 |
+| radiator : retrouvées avec le bon type | 59 / 82 |
 
 ## Échecs et avertissements
 
 | Cause | Cas |
 |---|---|
-| no_wall_corners | 34 |
-| no_reference | 15 |
+| no_wall_corners | 36 |
+| no_reference | 13 |
+| reference_false | 7 |
 
 | Avertissement (cas mesurés) | Cas |
 |---|---|
+| reference_small | 133 |
+| reference_ambiguous | 14 |
 | floor_line_ambiguous | 8 |
 | reference_too_small | 3 |
-| distortion_not_estimated | 2 |
 | wall_corners_inconsistent | 2 |
+| wall_trapezoid | 1 |
 
 ## Pires cas mesurés
 
 | Cas | Mur | Réf. | Réf. px | Angles | k1 | Err W | Err H | Incert. | Coins réf. px | Coins mur px | Avertissements |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 481 | 501 × 283 white | mire | 90 | 9/8/-4 | 0.004 | 0.03 % | 1.93 % | 0.68 % | 0.03 | 13.0 |  |
-| 342 | 534 × 272 dark | a4 | 92 | -8/-3/5 | 0.001 | 0.01 % | 1.85 % | 1.67 % | 0.05 | 12.1 |  |
-| 443 | 516 × 252 light | a4 | 116 | -11/-5/5 | 0.018 | 0.03 % | 1.72 % | 1.34 % | 0.03 | 14.7 |  |
-| 147 | 375 × 264 dark | a4 | 124 | -6/4/-12 | -0.002 | 0.00 % | 1.64 % | 1.28 % | 0.03 | 12.9 |  |
-| 55 | 445 × 266 dark | a4 | 136 | -1/-3/9 | -0.015 | 1.51 % | 0.63 % | 1.16 % | 0.03 | 9.6 |  |
-| 100 | 380 × 291 white | mire | 114 | -8/5/-12 | -0.006 | 0.06 % | 1.42 % | 0.59 % | 0.06 | 12.8 |  |
-| 222 | 547 × 254 white | a4 | 101 | 13/0/-4 | 0.012 | 0.03 % | 1.30 % | 1.53 % | 0.98 | 0.1 |  |
+| 342 | 534 × 272 dark | a4 | 92 | -8/-3/5 | 0.001 | 0.02 % | 1.88 % | 1.67 % | 0.05 | 12.3 | reference_small |
+| 481 | 501 × 283 white | mire | 90 | 9/8/-4 | 0.004 | 0.03 % | 1.87 % | 0.68 % | 0.04 | 12.8 | reference_small |
+| 443 | 516 × 252 light | a4 | 116 | -11/-5/5 | 0.018 | 0.02 % | 1.74 % | 1.34 % | 0.03 | 14.9 | reference_ambiguous |
+| 147 | 375 × 264 dark | a4 | 124 | -6/4/-12 | -0.002 | 0.00 % | 1.67 % | 1.28 % | 0.03 | 13.2 |  |
+| 100 | 380 × 291 white | mire | 114 | -8/5/-12 | -0.006 | 0.07 % | 1.44 % | 0.59 % | 0.06 | 12.9 |  |
+| 222 | 547 × 254 white | a4 | 101 | 13/0/-4 | 0.012 | 0.02 % | 1.30 % | 1.53 % | 0.98 | 0.0 | reference_small |
 | 291 | 431 × 241 light | a4 | 121 | 11/2/-0 | -0.015 | 0.05 % | 1.23 % | 1.34 % | 0.12 | 21.0 | wall_corners_inconsistent |
+| 398 | 501 × 279 white | a4 | 125 | 10/10/3 | 0.010 | 0.34 % | 0.94 % | 1.26 % | 0.80 | 11.5 |  |
 
 ## Banc « coins parfaits » (sans rendu : vérité terrain projetée → `rectify`)
 
@@ -122,7 +125,7 @@ Isole la géométrie de la rectification de la détection : coins exacts du mur 
 - Les erreurs W/H sont mesurées sur les cas **mesurés** (référence détectée et coins du mur à < 40 px) : ce sont les cas où le pipeline rend un `WallSurvey` sans échec. Les cas restants sont des échecs **signalés** (`failure` non nul) que l'UI renvoie vers la saisie manuelle (loupe) : ils ne produisent jamais de chiffre.
 - `floor_line_ambiguous` accompagne les cas où le bas du mur a été descendu d'un haut de plinthe au vrai sol (ou pourrait l'être) : la mesure est correcte dans la très grande majorité des cas mais l'UI doit faire confirmer le bas du mur.
 - La ligne « feuille tapée à la main » simule la saisie des 4 coins de la feuille avec une erreur gaussienne de 2 px (pleine résolution) sur chaque coordonnée, les coins du mur étant ceux proposés automatiquement : c'est la tolérance affichée ± 5 %.
-- `no_wall_corners` (34 cas, dont 22 murs blancs) : la sélection des lignes exige que chaque arête explique son côté (une arête de porte prise pour l'angle du mur est éliminée plutôt que de produire un mur faux mais cohérent) ; sur un mur blanc sous un plafond blanc, l'arête du plafond est souvent trop faible → repli manuel assumé. Les pires cas mesurés (erreur sur H de 1,5–2 %, sans avertissement) correspondent à une plinthe basse (≈ 5 cm) dont le haut a été pris pour le sol sans que le contrôle du dessous ne tranche ; l'erreur reste sous la tolérance affichée et le quad est soumis à confirmation visuelle.
+- `no_wall_corners` (36 cas, dont 23 murs blancs) : la sélection des lignes exige que chaque arête explique son côté (une arête de porte prise pour l'angle du mur est éliminée plutôt que de produire un mur faux mais cohérent) ; sur un mur blanc sous un plafond blanc, l'arête du plafond est souvent trop faible → repli manuel assumé. Les pires cas mesurés (erreur sur H de 1,5–2 %, sans avertissement) correspondent à une plinthe basse (≈ 5 cm) dont le haut a été pris pour le sol sans que le contrôle du dessous ne tranche ; l'erreur reste sous la tolérance affichée et le quad est soumis à confirmation visuelle.
 - L'incertitude propagée est calibrée : la ligne « Calibration » donne la part des cas où l'erreur réelle est inférieure à l'incertitude annoncée (1σ propagée avec les hypothèses de la spécification ; sur des bords synthétiques l'erreur réelle des coins est bien plus faible que ±1,5 px, d'où une incertitude conservatrice).
 
 ## Limites du banc (à garder en tête avant le banc réel)

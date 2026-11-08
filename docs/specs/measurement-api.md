@@ -157,3 +157,100 @@ wallLineCandidates(img, hint?), selectWallQuad(cands)            // étapes inte
 `uncertaintyPct` = max sur W et H de √(σ_ref² / taille_ref_px² + σ_mur² / taille_mur_px² + résidu_distorsion²), avec
 σ_ref = 0,5 px (mire), 1,5 px (A4 détectée), 4 px (A4 manuelle) — divisés par le facteur de réduction quand les coins ont été
 affinés sur l'image pleine résolution —, σ_mur = 3 px, résidu = max(0,3 %, résidu mesuré). `displayTolerancePct` = 3 ou 5.
+
+## 6. Moteur v2 (2026-11-08, measurement-engineer) — ajouts au contrat, sans rupture
+
+Rapport et chiffres : `docs/reports/measurement-v2-engine.md`. Tout est exporté par `src/index.ts`, donc présent dans `WSMeasure`.
+Aucune signature existante n'a changé ; les ajouts sont des fonctions, des champs optionnels et des codes.
+
+### 6.1 Affinage du quad du mur par droites (`src/wallRefine.ts`)
+```ts
+refineWallQuad(full: GrayImage, quadPx: Quad, opts?: { searchPx?: number; samples?: number; k1?: number; minStrength?: number }): {
+  quad: Quad;                                                     // pixels de `full`
+  lines: { ceiling, right, floor, left: { p: Pt; d: Pt; inliers: number; residualPx: number } | null };
+  residualPx: number;                                             // pire RMS des côtés ajustés (0 si aucun)
+  confidence: number;                                             // moyenne par côté de couverture × (1 − résidu / 4 px)
+  refined: boolean;                                               // 4 côtés ajustés ET 4 coins acceptés
+}
+sampleQuadEdges(img, quad, opts?) → Array<{ side, points: Pt[], requested, polarity }>      // 40–120 profils par côté
+sampleQuadEdgesDense(img, quad, { searchPx? }?) → Pt[][]          // 1 profil / 3 px, 3–97 % du côté (distorsion)
+sampleEdgePolyline(img, a, b, { count, minStrength, searchPx?, spanStart?, spanEnd? }) → { points, polarity }
+profileEdge(img, s, n, d, r, minStrength) → { p, strength } | null
+fitEdgeLine(pts, minInliers, minSpan?) → { p, d, inliers, residualPx } | null
+wallRefineSampleCount(len, samples?) → number                    // round(len / 12) borné à [40 ; 120]
+```
+- Profils : ±`searchPx` (défaut 6 px) le long de la normale, pas 0,5 px, moyennés sur ±2 px le long de l'arête, lissés [1 2 1] ;
+  transition = maximum de |dérivée| (polarité libre puis majoritaire par côté), parabole sous-pixel ; échantillons à < 40 % de
+  l'amplitude médiane écartés ; seuil de dérivée max(1, bruit).
+- Droite : RANSAC déterministe (paires i, i + n/2 ; tolérance 1 px) puis moindres carrés totaux itératifs, rejet à 2,5 σ
+  (σ = 1,4826 × médiane des |résidus|, plancher 0,2 px).
+- Côté rejeté (`null`) si : < max(12, 35 % des profils) inliers, inliers couvrant < 30 % du côté, ou RMS > 2 px. Il garde la
+  droite du quad d'entrée. Un coin qui bougerait de plus de max(12 px, 3 × `searchPx`) garde sa position d'entrée.
+- `k1` fourni : droites ajustées dans l'espace non distordu (normalisation sur `full`), coins re-distordus.
+
+### 6.2 Distorsion sur polylignes (`src/distortionEstimate.ts`)
+```ts
+estimateRadialDistortionFromPolylines(polylines: ReadonlyArray<readonly Pt[]>, imageSize: { w; h }): { k1; residualPct; linesUsed; rawK1? }
+lineDistortionLeverPx(pts, size) → number          // flèche (px) induite par k1 = 0,02 sur la ligne, composante affine retirée
+robustParabolaInliers(pts, a, b) → Pt[]            // 1,5 px puis 3 passes à max(0,25 px, 3 σ)
+parabolaResiduals(pts, a, b) → number[] | null
+DistortionEstimate.rawK1?: number                  // optimum brut ; si l'estimation est rejetée (≥ 0,045), optimum sur ±0,15
+```
+Toute polyligne (arêtes du mur, haut de plinthe, montants de portes/fenêtres) est acceptée si : ≥ 20 points, longueur
+≥ 15 % du petit côté, levier ≥ 0,1 px. Coût pondéré par la longueur (poids par point = longueur / nb de points). Consensus
+(±0,01) et rejet (|k1| ≥ 0,045 → 0) inchangés. `estimateRadialDistortion(img, lines)` (v1) est inchangé ; il renvoie en plus `rawK1`.
+
+### 6.3 Qualité (`src/quality.ts`)
+```ts
+sharpness(img: GrayImage, roi?: { x; y; w; h }): { score: number; verdict: "sharp" | "soft" | "blurry"; blurPx: number; edgePixels: number }
+fuseQuads(quads: Quad[], opts?: { maxSpreadPx?: number }): { quad: Quad; spreadPx: number; used: number } | null
+consistency(survey: { heightCm: number }, knownHeightCm: number): { deltaPct: number; verdict: "ok" | "check" | "mismatch" }
+```
+- `sharpness` : largeur de flou gaussienne équivalente `blurPx`, mesurée sur l'image lissée σ 1 aux crêtes de bords nets
+  (contraste ≥ max(24, 6 × bruit) sur ±8 px, marche monotone), σ = C / (√(2π) · pic du gradient), lissage retranché en
+  quadrature, médiane par direction (x, y), direction la plus floue retenue. `score` = 1 / `blurPx`. Seuils pour l'**image de
+  travail** (≤ 2 048 px) : `blurPx` ≥ 2,1 → `blurry` (refus) ; ≥ 1,75 → `soft` ; sinon `sharp`. Aucun bord mesurable →
+  `blurry`, `blurPx = +∞`, `score = 0`. Rampes (σ > 6 px) ignorées, bords à 3,2–6 px comptés à 3,2 px.
+- `fuseQuads` : médiane coin par coin (x et y séparément, moyenne des deux centrales si pair), rejet des quads dont un coin
+  est à > `maxSpreadPx` (défaut 8 px) du coin médian, médiane recalculée ; `spreadPx` = médiane des distances au coin médian ;
+  `null` si < 2 quads valides (finis et non rejetés). Usage : 5 dernières images de l'aperçu, rafale de 3 photos.
+- `consistency` : `deltaPct` signé = (mesure − connue) / connue × 100 ; |Δ| ≤ 1,5 % `ok`, ≤ 4 % `check`, sinon `mismatch`.
+  Hauteur connue ≤ 0 ou non finie, ou mesure non finie → `{ deltaPct: NaN, verdict: "check" }`.
+
+### 6.4 Pipeline
+```ts
+measurePhoto({ …, refineWallQuad?: boolean, checkSharpness?: boolean }) → AutoSurveyResult & {
+  wallRefinement: WallQuadRefinement | null;   // repère pleine résolution
+  sharpness: SharpnessResult | null;
+  confidence: number;                          // < 0,8 ⇒ bannière « Mesure à vérifier avant d'envoyer le devis »
+}
+withQualityWarnings(survey, { sharpness, reference, distortion }, refQuad) → WallSurvey   // étape exposée (tests, module)
+ReferenceDetection.candidates?: Array<{ kind; quad; score }>   // meilleur d'abord ; à proposer à l'utilisateur si ambiguë
+ReferenceDetection.ambiguous?: boolean                          // second score > 0,7 × le meilleur
+```
+- Avec `full` : arêtes du mur échantillonnées sur l'originale → k1 sur polylignes denses (repli v1 si < 2 lignes) →
+  `refineWallQuad(full, quad × facteur, { searchPx: 2 × facteur + 4, k1 })` ; les coins ne sont remplacés que si `refined`.
+  Coins fournis par l'utilisateur : non affinés sauf `refineWallQuad: true`.
+- `confidence` = min(confiance de la référence, confiance des coins), plafonnée à 0,5 si un code de refus,
+  `reference_ambiguous` ou `reference_scale_suspect` est présent, à 0,79 si un autre avertissement de fiabilité est présent
+  (`baseboard_height_required` exclu). 0 en cas d'échec.
+
+### 6.5 Codes d'avertissement ajoutés (`WARN`, clés i18n, jamais de texte)
+Seuils de docs/quality-thresholds.md (« Banc de réalisme »). Les codes de **refus** sont listés dans `REFUSAL_WARNINGS` : l'UI demande une
+reprise et bloque l'envoi du devis tant que la mesure n'est ni corrigée ni confirmée.
+
+| Code | Émis par | Condition | Nature |
+|---|---|---|---|
+| `measure_implausible` | `rectify` | H ∉ [180 ; 450] cm ou W ∉ [100 ; 1 200] cm | refus |
+| `reference_scale_suspect` | `rectify` | f = grand côté de la référence / H ∉ [4 % ; 14 %] (A4 : H < 2,12 m ou > 7,4 m) | avertissement fort (confiance ≤ 0,5) |
+| `reference_small` | `rectify` | petit côté de la référence 40–55 px (image de travail) | avertissement |
+| `reference_too_small` (existant) | `rectify` | < 40 px | refus |
+| `reference_ambiguous` | `measurePhoto` | `ambiguous`, ou centre de la référence hors du tiers central en largeur / hors [15 % ; 85 %] en hauteur du mur | avertissement fort (confiance ≤ 0,5) |
+| `image_soft` | `measurePhoto` | `sharpness` = `soft` (flou σ ≈ 1,5–2 px, bougé ≈ 4–6 px) | avertissement |
+| `image_blurry` | `measurePhoto` | `sharpness` = `blurry` (flou σ ≥ 2 px, bougé ≥ 6–8 px) | refus |
+| `distortion_strong` | `measurePhoto` | max(\|k1\|, \|rawK1\|) > 0,05 | avertissement |
+| `distortion_extreme` | `measurePhoto` | max(\|k1\|, \|rawK1\|) > 0,10 | refus |
+
+Non constatable par le moteur, à la charge de l'UI : gondolage de la feuille (seul `reference_aspect_mismatch` en capte une partie),
+surexposition de la feuille, inclinaison du téléphone (capteurs). Correction documentaire : dans le modèle de division du dépôt,
+**k1 < 0 = barillet** (commentaire de `src/distortion.ts` corrigé).

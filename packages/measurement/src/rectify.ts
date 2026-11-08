@@ -11,8 +11,8 @@
 import type { Pt, Quad, ReferenceKind, WallSurvey } from "@wallscan/core";
 import {
   A4_CM, CHECK_DISTORTION_PCT, CHECK_OPPOSITE_SIDES_PCT, CHECK_REFERENCE_ASPECT_PCT, CHECK_TRAPEZOID_PCT,
-  DISTORTION_RESIDUAL_PCT, FOCAL_SWEEP_MM_EQUIV, MAX_RECTIFIED_WIDTH_PX, MIRE_OUTER_CM, REF_CORNER_SIGMA_PX, REFERENCE_MIN_SIDE_PX,
-  WALL_CORNER_SIGMA_PX, WARN,
+  DISTORTION_RESIDUAL_PCT, FOCAL_SWEEP_MM_EQUIV, MAX_RECTIFIED_WIDTH_PX, MIRE_OUTER_CM, PLAUSIBLE_HEIGHT_CM, PLAUSIBLE_WIDTH_CM,
+  REF_CORNER_SIGMA_PX, REF_WALL_FRACTION, REFERENCE_MIN_SIDE_PX, REFERENCE_WARN_SIDE_PX, WALL_CORNER_SIGMA_PX, WARN,
 } from "./constants.js";
 import { distortionDisplacementPct, undistortPoint, type ImageSize } from "./distortion.js";
 import { applyHomography, applyHomographyToQuad, quadToUnitSquare } from "./homography.js";
@@ -213,6 +213,13 @@ export function rectify(args: RectifyArgs): WallSurvey {
   const sH = refHPx / b;
   const scalePxPerCm = Math.min((sW * a + sH * b) / (a + b), MAX_RECTIFIED_WIDTH_PX / widthCm);
   if (Math.min(refWPx, refHPx) < REFERENCE_MIN_SIDE_PX) warnings.push(WARN.referenceSmall);
+  else if (Math.min(refWPx, refHPx) < REFERENCE_WARN_SIDE_PX) warnings.push(WARN.referenceSmallWarn);
+  // Garde de plausibilité (jamais de mesure aberrante silencieuse) et cohérence feuille / mur (voir constants.ts).
+  if (heightCm < PLAUSIBLE_HEIGHT_CM.min || heightCm > PLAUSIBLE_HEIGHT_CM.max || widthCm < PLAUSIBLE_WIDTH_CM.min || widthCm > PLAUSIBLE_WIDTH_CM.max) {
+    warnings.push(WARN.measureImplausible);
+  }
+  const refWallFraction = Math.max(a, b) / heightCm;
+  if (refWallFraction > REF_WALL_FRACTION.max || refWallFraction < REF_WALL_FRACTION.min) warnings.push(WARN.referenceScaleSuspect);
 
   // Contrôles géométriques indépendants de la référence.
   const cam = cameraCheck(wallU, imageSize, args.focalPx);

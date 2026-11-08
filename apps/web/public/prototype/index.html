@@ -172,6 +172,14 @@
   .camside{width:56px;height:56px;border:1px solid var(--paper40);background:var(--plate);color:var(--paper);display:inline-flex;align-items:center;justify-content:center;border-radius:0;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
   .camside .ic{width:22px;height:22px}
   .camside.ghost{visibility:hidden}
+  .shutwrap{position:relative;display:flex;align-items:center;justify-content:center}
+  .camside.autobtn{position:absolute;right:calc(100% + 12px);top:50%;margin-top:-22px;width:44px;height:44px;font-family:var(--text);font-size:12px;letter-spacing:.6px;text-transform:uppercase;cursor:pointer}
+  .camside.autobtn.on{border-color:var(--gold);color:var(--gold)}
+  .shutter{position:relative}
+  .shutter .cd{position:absolute;inset:0;display:none;align-items:center;justify-content:center;gap:7px;pointer-events:none}
+  .shutter.counting .cd{display:flex}
+  .shutter .cd b{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--char);background:transparent;transition:background .15s}
+  .shutter .cd b.on{background:var(--char)}
   .shutter{width:78px;height:78px;border-radius:50%;border:3px solid var(--paper);background:transparent;padding:5px;display:flex;align-items:center;justify-content:center;cursor:pointer}
   .shutter i{display:block;width:100%;height:100%;border-radius:50%;background:var(--paper);transition:transform .1s,background .2s}
   .shutter:active i{transform:scale(.86)}
@@ -612,7 +620,7 @@
   <div class="livestat" id="liveStat" aria-live="polite"></div>
   <div class="cambottom">
     <button class="camside" id="camImport" type="button" aria-label="Importer une photo existante"><svg class="ic"><use href="#i-image"/></svg></button>
-    <button class="shutter" id="shutter" type="button" aria-label="Prendre la photo"><i></i></button>
+    <div class="shutwrap"><button class="camside autobtn" id="autoBtn" type="button" aria-pressed="false" aria-label="Déclenchement automatique quand tout est prêt">Auto</button><button class="shutter" id="shutter" type="button" aria-label="Prendre la photo"><i></i><span class="cd" aria-hidden="true"><b></b><b></b><b></b></span></button></div>
     <button class="camside ghost" id="arBtn" type="button" aria-label="Scanner le relief du mur (réalité augmentée)"><svg class="ic"><use href="#i-relief"/></svg></button>
   </div>
 </section>
@@ -639,10 +647,13 @@
       <div class="seg modes" id="stageModes" role="group" aria-label="Ce que vous ajustez sur la photo">
         <button type="button" data-mode="ref" class="sel" id="modeRef">Feuille</button><button type="button" data-mode="wall">Coins du mur</button><button type="button" data-mode="outline" id="modeOut">Contour</button><button type="button" data-mode="baseboard" id="modeBb" disabled>Plinthe</button>
       </div>
+      <div id="blurBox" class="conf tight" style="display:none"></div>
+      <div id="tiltBox" class="conf tight" style="display:none"></div>
       <div id="refStatus" class="conf wait tight"><svg class="ic"><use href="#i-scan"/></svg><span>En attente d'une photo</span></div>
       <div id="ceilVerify" class="fields" style="display:none"><label class="field">Hauteur sous plafond (cm)<input id="ceilInput2" type="number" inputmode="numeric" min="150" max="600" value="250"></label></div>
       <div id="wallStatus" class="conf wait tight"><svg class="ic"><use href="#i-scan"/></svg><span>Coins du mur</span></div>
       <div id="outStatus" class="conf tight" style="display:none"></div>
+      <div id="qualStatus" class="conf tight" style="display:none"></div>
       <div id="compBlock" class="fields" style="display:none"><label class="field"><span id="compLabel">Hauteur du mur, sol → plafond (cm)</span><input id="compHeight" type="number" inputmode="numeric" min="100" max="600" placeholder="ex. 250"></label><p class="foot" id="compFoot"></p></div>
       <span class="lbl h3">Vue de face · Ouvertures</span>
       <div class="rectbox" id="rectBox"><canvas id="rectCanvas" width="16" height="9"></canvas><div id="rectOps"></div><div class="rectHint" id="rectHint">Touchez deux coins opposés de l'ouverture</div></div>
@@ -655,6 +666,8 @@
         <div class="bbrow"><button class="btn" id="bbMeasure" type="button">Mesurer sur la photo</button><label class="field">Hauteur (cm)<input id="bbInput" type="number" inputmode="decimal" min="1" max="60" step="0.5" placeholder="—"></label></div>
         <div id="bbStatus" class="conf tight"><svg class="ic"><use href="#i-alert"/></svg><span>Mesurez ou saisissez la hauteur de plinthe.</span></div>
       </div>
+      <div class="fields"><label class="field">Hauteur sous plafond connue (cm), facultatif<input id="knownH" type="number" inputmode="numeric" min="100" max="600" placeholder="ex. 250"></label></div>
+      <div id="consBox" class="conf tight" style="display:none"></div>
       <p class="foot">Estimation indicative. Devis définitif sous 48h après visite.</p>
     </div>
   </div>
@@ -677,6 +690,7 @@
     <div class="dims sub"><span class="num sm"><span id="kA">–</span><span class="unit">m² hors ouvertures</span></span></div>
     <div id="confBox" class="conf wait"><svg class="ic"><use href="#i-scan"/></svg><span>En attente d'une photo</span></div>
     <div id="warnBox"></div>
+    <div id="consRes" class="conf" style="display:none"></div>
     <div class="spec">
       <div><small>Référence</small><span id="rRef">–</span></div>
       <div><small>Ouvertures</small><span id="rOpen">–</span></div>
@@ -935,7 +949,12 @@ let levelTimer=null,levelBound=false;
 // Le niveau est partagé par l'écran de conseils (#level) et le viseur en direct (#camLevel)
 const LEVELS=[["level","bubble","levelTxt","levelBtn"],["camLevel","camBubble","camLevelTxt","camLevelBtn"]];
 const lvlEach=f=>LEVELS.forEach(([a,b,c,d])=>f($(a),$(b),$(c),$(d)));
-function onOrient(e){if(e.beta==null&&e.gamma==null)return;clearTimeout(levelTimer);const roll=e.gamma||0,pitch=(e.beta||0)-90;const cl=v=>clamp(v,-30,30);const ok=Math.abs(roll)<2.5&&Math.abs(pitch)<6;
+// Historique d'orientation (1,5 s) : alimente l'inclinaison à la prise de vue, la variance sur 1 s et le déclenchement automatique
+const ORI={last:null,buf:[]};
+function oriPush(roll,pitch){const t=Date.now();ORI.last={roll,pitch,t};ORI.buf.push(ORI.last);while(ORI.buf.length&&t-ORI.buf[0].t>1500)ORI.buf.shift();}
+function oriStats(ms){const t=Date.now();const b=ORI.buf.filter(o=>t-o.t<=ms);if(b.length<3)return null;const m=k=>b.reduce((a,o)=>a+o[k],0)/b.length;const v=k=>{const mu=m(k);return b.reduce((a,o)=>a+(o[k]-mu)**2,0)/b.length;};return{n:b.length,sd:Math.sqrt(v("roll")+v("pitch"))};}
+const oriNow=()=>ORI.last&&Date.now()-ORI.last.t<5000?ORI.last:null;
+function onOrient(e){if(e.beta==null&&e.gamma==null)return;clearTimeout(levelTimer);const roll=e.gamma||0,pitch=(e.beta||0)-90;oriPush(roll,pitch);const cl=v=>clamp(v,-30,30);const ok=Math.abs(roll)<2.5&&Math.abs(pitch)<6;
   const txt=ok?"Téléphone droit":Math.abs(roll)>=2.5?(roll>0?"Penchez vers la gauche":"Penchez vers la droite"):(pitch>0?"Redressez le haut du téléphone":"Inclinez le téléphone vers vous");
   lvlEach((ring,bub,lt)=>{const r=ring.id==="camLevel"?26:44;bub.style.transform=`translate(${cl(roll)/30*r}px,${cl(pitch)/30*r}px)`;ring.classList.toggle("ok",ok);lt.textContent=txt;});}
 function bindOrient(){if(levelBound)return;levelBound=true;window.addEventListener("deviceorientation",onOrient);}
@@ -958,22 +977,56 @@ function stopCamera(){liveStop();if(CAM.stream)CAM.stream.getTracks().forEach(t=
 function camFallback(e){stopCamera();show("shoot");toast(e&&e.name==="NotAllowedError"?"Caméra refusée : autorisez-la dans le navigateur ou utilisez l'appareil photo du téléphone":"Viseur indisponible ici : utilisez l'appareil photo du téléphone");}
 async function openCamera(){if(!camOK()){camFallback(null);return;}if(CAM.opening)return;CAM.opening=true;
   try{stopCamera();CAM.stream=await getStream(true);CAM.track=CAM.stream.getVideoTracks()[0];const v=$("camVideo");v.srcObject=CAM.stream;await v.play().catch(()=>{});try{localStorage.setItem("wsCamOK","1");}catch(_){}
-    show("camera");layoutCam();liveStart();const st=CAM.track.getSettings?CAM.track.getSettings():{};$("camFoot").textContent=`Tenez-vous en face, au milieu. Pas de ×0,5.${MODE==="pro"&&st.width?` · Aperçu ${st.width} × ${st.height}`:""}`;}
+    await camTune(CAM.track);
+    show("camera");layoutCam();liveStart();const st=CAM.track.getSettings?CAM.track.getSettings():{};CAM.previewTxt=st.width?`Aperçu ${st.width} × ${st.height}`:"";camFootPro("");}
   catch(e){console.warn("camera",e);camFallback(e);}
   finally{CAM.opening=false;}}
+// Réglages prudents du flux : chacun dans son try, jamais bloquant, torche jamais. Zoom ×1 (évite l'ultra grand-angle), mise au point, exposition et balance des blancs en continu.
+async function camTune(track){const tune={caps:{},asked:{},fail:0};let caps={};try{caps=track.getCapabilities?track.getCapabilities():{};}catch(_){}tune.caps=caps||{};
+  const has=(k,v)=>Array.isArray(caps[k])&&caps[k].includes(v);
+  const ask=async(key,c)=>{try{await track.applyConstraints({advanced:[c]});tune.asked[key]=true;}catch(e){tune.asked[key]=false;tune.fail++;console.warn("réglage caméra",key,e&&e.message||e);}};
+  if(caps.zoom&&typeof caps.zoom.min==="number"&&caps.zoom.min<=1&&caps.zoom.max>=1)await ask("zoom",{zoom:1});
+  if(has("focusMode","continuous"))await ask("focus",{focusMode:"continuous"});
+  if(has("exposureMode","continuous"))await ask("exposure",{exposureMode:"continuous"});
+  if(has("whiteBalanceMode","continuous"))await ask("wb",{whiteBalanceMode:"continuous"});
+  let st={};try{st=track.getSettings?track.getSettings():{};}catch(_){}tune.settings=st||{};CAM.tune=tune;return tune;}
+// Capacités effectives (mode pro) : ce que le flux annonce après les réglages
+function camCapsText(){const t=CAM.tune;if(!t)return"";const st=t.settings||{};const mode={continuous:"continue","single-shot":"ponctuelle",manual:"manuelle",none:"aucune"};const m=v=>v==null?"non exposée":(mode[v]||v);
+  return`Réglages : zoom ${st.zoom!=null?"×"+frn(st.zoom,1):"non exposé"} · mise au point ${m(st.focusMode)} · exposition ${m(st.exposureMode)} · balance des blancs ${m(st.whiteBalanceMode)}`;}
+function camFootPro(analysis){const base=analysis||"Tenez-vous en face, au milieu. Pas de ×0,5.";const f=$("camFoot");
+  if(MODE!=="pro"){f.textContent=base;return;}
+  f.innerHTML="";[base+(CAM.previewTxt&&!analysis?` · ${CAM.previewTxt}`:""),camCapsText()].filter(Boolean).forEach((t,i)=>{if(i)f.appendChild(document.createElement("br"));f.appendChild(document.createTextNode(t));});}
 function layoutCam(){const v=$("camVideo"),box=$("camBox"),fr=$("camFrame");if(!v.videoWidth||!box.clientWidth)return;const W=box.clientWidth,H=box.clientHeight,r=v.videoWidth/v.videoHeight;let w=W,h=W/r;if(h>H){h=H;w=H*r;}Object.assign(fr.style,{width:w+"px",height:h+"px",left:(W-w)/2+"px",top:(H-h)/2+"px"});}
 $("camVideo").addEventListener("loadedmetadata",layoutCam);window.addEventListener("resize",()=>{if($("camera").classList.contains("active")){layoutCam();liveDraw();}});
 // Aperçu discret sur l'accueil quand la caméra a déjà été autorisée : l'application s'ouvre sur le viseur
 async function startHomePreview(){let ok=false;try{ok=localStorage.getItem("wsCamOK")==="1";}catch(_){}if(!ok||!camOK()||document.hidden)return;
   try{stopCamera();CAM.stream=await getStream(false);if(!$("home").classList.contains("active")){stopCamera();return;}const hv=$("homeVideo");hv.srcObject=CAM.stream;await hv.play().catch(()=>{});hv.classList.add("on");}catch(e){console.warn("home preview",e);stopCamera();}}
-async function capturePhoto(){const btn=$("shutter");if(btn.classList.contains("busy")||!CAM.track)return;btn.classList.add("busy");const fl=$("camFlash");fl.classList.add("on");setTimeout(()=>fl.classList.remove("on"),70);
-  const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),ms))]);let blob=null;
+// Rafale : 3 images en série (ImageCapture.takePhoto), la plus nette devient la photo de travail ; les deux autres servent à fusionner les coins.
+// Une seule photo si ImageCapture est absent, si la première prend trop de temps (3 images dépasseraient 2,5 s) ou si le délai total est dépassé.
+const BURST_CFG={n:3,targetMs:1500,abortMs:2500,maxSpreadPx:4};
+function oriPose(){const o=oriNow();return o?{pitch:o.pitch,roll:o.roll,at:o.t}:null;}
+async function decodeGray(blob){const url=URL.createObjectURL(blob);try{const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+    const k=Math.min(1,2048/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k);const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,w,h);
+    return{gray:WSMeasure.toGray(x.getImageData(0,0,w,h).data,w,h),w,h};}finally{URL.revokeObjectURL(url);}}
+async function capturePhoto(){const btn=$("shutter");if(btn.classList.contains("busy")||!CAM.track)return;btn.classList.add("busy");autoCancel();const fl=$("camFlash");fl.classList.add("on");setTimeout(()=>fl.classList.remove("on"),70);
+  const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),ms))]);const pose=oriPose();const t0=performance.now();const blobs=[],dts=[];let mode="canvas";
   if(window.ImageCapture){try{const ic=new ImageCapture(CAM.track);let opt=null;try{const pc=await withTimeout(ic.getPhotoCapabilities(),1500);if(pc&&pc.imageWidth&&pc.imageWidth.max>0)opt={imageWidth:pc.imageWidth.max,imageHeight:pc.imageHeight.max};}catch(_){}
-      try{blob=await withTimeout(opt?ic.takePhoto(opt):ic.takePhoto(),7000);}catch(e1){if(opt){try{blob=await withTimeout(ic.takePhoto(),7000);}catch(_){blob=null;}}}}catch(e){console.warn("takePhoto",e);blob=null;}}
-  if(!blob){const v=$("camVideo");const c=document.createElement("canvas");c.width=v.videoWidth||1280;c.height=v.videoHeight||720;c.getContext("2d").drawImage(v,0,0,c.width,c.height);blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.95));}
-  if(!blob){btn.classList.remove("busy");toast("La photo n'a pas pu être prise : réessayez");return;}
-  const src=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);});
-  S.liveHint=LIVE.last?{...LIVE.last}:null;btn.classList.remove("busy");stopCamera();stopLevel();loadPhoto(src,null);}
+      for(let i=0;i<BURST_CFG.n;i++){const ts=performance.now();let blob=null;
+        try{blob=await withTimeout(opt?ic.takePhoto(opt):ic.takePhoto(),i?2500:7000);}catch(e1){if(i===0&&opt){try{blob=await withTimeout(ic.takePhoto(),7000);opt=null;}catch(_){blob=null;}}}
+        if(!blob)break;blobs.push(blob);mode="imagecapture";const dt=performance.now()-ts;dts.push(dt);
+        if(i===0&&dt*BURST_CFG.n>BURST_CFG.abortMs)break;            // le téléphone ne tiendra pas la rafale : une seule photo
+        if(performance.now()-t0+dt>BURST_CFG.abortMs)break;}}      // l'image suivante dépasserait le délai
+    catch(e){console.warn("takePhoto",e);}}
+  if(!blobs.length){const v=$("camVideo");const c=document.createElement("canvas");c.width=v.videoWidth||1280;c.height=v.videoHeight||720;c.getContext("2d").drawImage(v,0,0,c.width,c.height);const b=await new Promise(r=>c.toBlob(r,"image/jpeg",.95));if(b){blobs.push(b);dts.push(performance.now()-t0);}}
+  if(!blobs.length){btn.classList.remove("busy");toast("La photo n'a pas pu être prise : réessayez");return;}
+  const shotMs=performance.now()-t0;
+  // Netteté de chaque image (image de travail ≤ 2 048 px) ; la plus nette est gardée
+  const frames=[];for(const b of blobs){try{const d=await decodeGray(b);frames.push({blob:b,gray:d.gray,w:d.w,h:d.h,sharp:sharpOf(d.gray)});}catch(e){console.warn("rafale : image illisible",e);frames.push({blob:b,gray:null,sharp:{score:0,verdict:"blurry",src:"illisible"}});}}
+  let best=0;frames.forEach((f,i)=>{if(f.sharp.score>frames[best].sharp.score)best=i;});
+  const keep=frames[best];const src=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(keep.blob);});
+  const grays=frames.filter((f,i)=>i!==best&&f.gray&&keep.gray&&f.w===keep.w&&f.h===keep.h).map(f=>f.gray);
+  const burst={count:frames.length,mode,shotMs:Math.round(shotMs),dtMs:dts.map(Math.round),scores:frames.map(f=>Math.round(f.sharp.score*10)/10),verdicts:frames.map(f=>f.sharp.verdict),chosen:best,fuse:null};
+  S.liveHint=LIVE.last?{...LIVE.last}:null;btn.classList.remove("busy");stopCamera();stopLevel();loadPhoto(src,null,{burst,pose,sharp:{...keep.sharp,count:frames.length},grays});}
 $("shutter").onclick=capturePhoto;$("camBack").onclick=()=>show("prepare");
 
 // ============================================================ SCAN RELIEF — WebXR (Chrome Android + ARCore). La carte de profondeur donne le plan du
@@ -1058,7 +1111,9 @@ function arReliefZones(sv){const A=S.ar;if(!A||!A.cells.length||!sv.homography)r
 // ============================================================ GUIDAGE EN DIRECT : le moteur de mesure tourne sur les images du viseur
 // (Web Worker construit à partir du bundle WSMeasure inliné) : feuille/mire détectée et bien placée ?, bords du mur trouvés ?,
 // plafond et sol dans le cadre ? Les coins proposés sont affichés en direct, puis servent d'indice après la prise de vue.
-const LIVE={on:false,busy:false,id:0,last:null,pending:null,worker:null,cv:document.createElement("canvas"),timer:0,fails:0};
+const LIVE={on:false,busy:false,id:0,last:null,hist:[],pending:null,worker:null,cv:document.createElement("canvas"),timer:0,fails:0};
+const LIVE_N=5;                                                      // résultats gardés pour le consensus
+const LIVE_CFG={maxSpreadPx:10,stablePx:1.5,orientSd:0.5,minPresent:3};  // px de l'image d'analyse (560 px) ; écart-type d'orientation en degrés sur 1 s
 const LIVE_WORKER_CODE=`self.onmessage=e=>{const m=e.data;const img={width:m.w,height:m.h,data:new Uint8ClampedArray(m.buf)};const t0=performance.now();let ref=null,lines=null,quad=null;
   try{const r=WSMeasure.detectReference(img,{maxSideFrac:.7});if(r)ref={kind:r.kind,quad:r.quad,confidence:r.confidence};}catch(_){}
   try{const cand=WSMeasure.wallLineCandidates(img,ref?{inside:WSMeasure.quadCenter(ref.quad)}:{});
@@ -1076,8 +1131,8 @@ function liveWorker(){if(LIVE.worker!==null)return LIVE.worker;const el=document
   try{const w=new Worker(URL.createObjectURL(new Blob([el.textContent,"\n",LIVE_WORKER_CODE],{type:"text/javascript"})));
     w.onmessage=e=>liveResult(e.data);w.onerror=err=>{console.warn("live worker",err.message||err);LIVE.busy=false;LIVE.fails++;if(LIVE.fails>3){LIVE.on=false;liveStatus(null);}else liveSchedule(400);};
     LIVE.worker=w;return w;}catch(e){console.warn("live worker",e);LIVE.worker=false;return false;}}
-function liveStart(){if(!liveWorker())return;LIVE.on=true;LIVE.last=null;LIVE.fails=0;liveDraw();liveSchedule(250);}
-function liveStop(){LIVE.on=false;clearTimeout(LIVE.timer);LIVE.pending=null;LIVE.busy=false;}
+function liveStart(){if(!liveWorker())return;LIVE.on=true;LIVE.last=null;LIVE.hist=[];LIVE.fails=0;liveDraw();liveSchedule(250);autoStart();}
+function liveStop(){LIVE.on=false;clearTimeout(LIVE.timer);LIVE.pending=null;LIVE.busy=false;autoStop();}
 function liveSchedule(ms){clearTimeout(LIVE.timer);LIVE.timer=setTimeout(liveTick,ms);}
 function liveTick(){if(!LIVE.on)return;const v=$("camVideo");if(!CAM.stream||!v.videoWidth||LIVE.busy||document.hidden){liveSchedule(200);return;}
   const sc=560/Math.max(v.videoWidth,v.videoHeight);const w=Math.max(16,Math.round(v.videoWidth*sc)),h=Math.max(16,Math.round(v.videoHeight*sc));
@@ -1086,8 +1141,9 @@ function liveTick(){if(!LIVE.on)return;const v=$("camVideo");if(!CAM.stream||!v.
   const g=new Uint8ClampedArray(w*h);for(let i=0,j=0;i<g.length;i++,j+=4)g[i]=(d[j]*77+d[j+1]*151+d[j+2]*28)>>8;
   LIVE.busy=true;LIVE.pending={id:++LIVE.id,w,h,vw:v.videoWidth,vh:v.videoHeight};LIVE.worker.postMessage({id:LIVE.id,w,h,buf:g.buffer},[g.buffer]);}
 function liveResult(r){LIVE.busy=false;if(!LIVE.on||!LIVE.pending||r.id!==LIVE.pending.id){liveSchedule(100);return;}
-  LIVE.last={...r,w:LIVE.pending.w,h:LIVE.pending.h,vw:LIVE.pending.vw,vh:LIVE.pending.vh,at:Date.now()};liveDraw();liveStatus(liveAssess(LIVE.last));
-  if(MODE==="pro")$("camFoot").textContent=`Analyse ${Math.round(r.ms)} ms · image ${LIVE.last.w} × ${LIVE.last.h} · vidéo ${LIVE.last.vw} × ${LIVE.last.vh}`;
+  const raw={...r,w:LIVE.pending.w,h:LIVE.pending.h,vw:LIVE.pending.vw,vh:LIVE.pending.vh,at:Date.now()};LIVE.hist.push(raw);while(LIVE.hist.length>LIVE_N)LIVE.hist.shift();
+  const L=liveFuse(raw);L.stab=liveStability(L);LIVE.last=L;liveDraw();liveStatus(liveAssess(L));
+  if(MODE==="pro")camFootPro(`Analyse ${Math.round(r.ms)} ms · image ${LIVE.last.w} × ${LIVE.last.h} · vidéo ${LIVE.last.vw} × ${LIVE.last.vh}`);
   liveSchedule(Math.max(80,Math.min(600,r.ms*0.5)));}
 // Évaluation : textes courts, jamais bloquants. Retourne [{cls, text}] ou null quand rien n'est encore analysé.
 function liveAssess(L){const out=[];const long=Math.max(L.w,L.h);
@@ -1107,7 +1163,10 @@ function liveAssess(L){const out=[];const long=Math.max(L.w,L.h);
   if(L.notch)out.push({cls:"",text:"Décrochement au plafond détecté (poutre ?) : il sera proposé après la photo"});
   else if(noL&&noR)out.push({cls:"",text:"Bords du mur non trouvés : cadrez le mur entier"});
   else if(noL||noR)out.push({cls:"",text:`Bord ${noL?"gauche":"droit"} non vu : décalez-vous ou reculez`});
-  L.ready=!!(L.ref&&!L.refBad&&L.quad&&!noC&&!noF);return out;}
+  L.ready=!!(L.ref&&!L.refBad&&L.quad&&!noC&&!noF);
+  if(L.ref||L.quad)out.push(L.stab&&L.stab.stable?{cls:"ok",text:"Stable"}:{cls:"",text:"Stabilisation…"});
+  if(AUTO.on&&L.ready&&!oriNow())out.push({cls:"",text:"Auto : capteur d'inclinaison indisponible"});
+  return out;}
 function liveStatus(items){const box=$("liveStat");if(!items){box.innerHTML="";$("camFoot").style.display="";$("shutter").classList.remove("ready");return;}
   $("camFoot").style.display=MODE==="pro"?"":"none";box.innerHTML=items.map(i=>`<span class="chip ${i.cls}"><i></i>${i.text}</span>`).join("");$("shutter").classList.toggle("ready",!!(LIVE.last&&LIVE.last.ready));}
 function liveDraw(){const svg=$("liveSvg");const L=LIVE.last;if(!L||!LIVE.on){svg.innerHTML="";return;}const fr=$("camFrame");const fw=fr.clientWidth||1,fh=fr.clientHeight||1;const sx=fw/L.w,sy=fh/L.h;
@@ -1121,9 +1180,78 @@ function liveDraw(){const svg=$("liveSvg");const L=LIVE.last;if(!L||!LIVE.on){sv
 // même largeur de champ supposée, décalage vertical centré).
 function liveHintFor(photoW,photoH){const L=LIVE.last;if(!L||Date.now()-L.at>4000)return null;const ar=(L.vh/L.vw)/(photoH/photoW);
   const N=p=>[p.x/L.w,0.5+(p.y/L.h-0.5)*ar];return{quad:L.quad?L.quad.map(N):null,ref:L.ref?{kind:L.ref.kind,quad:L.ref.quad.map(N),confidence:L.ref.confidence}:null,missing:{ceiling:!(L.lines&&L.lines.ceiling),floor:!(L.lines&&L.lines.floor)}};}
+
+// ---------- Consensus multi-images : médiane des 5 derniers résultats du worker (coin par coin, extrémité par extrémité)
+const medOf=a=>{const t=a.slice().sort((x,y)=>x-y),n=t.length;return n?(n%2?t[(n-1)/2]:(t[n/2-1]+t[n/2])/2):0;};
+// Repli local de WSMeasure.fuseQuads : médiane coin par coin, rejet des quads dont un coin s'écarte de plus de maxSpreadPx, null sous 2 quads retenus
+function fuseQuadsLocal(quads,opt){const med=q=>[0,1,2,3].map(i=>({x:medOf(q.map(a=>a[i].x)),y:medOf(q.map(a=>a[i].y))}));const dist=(a,m)=>Math.max(...a.map((p,i)=>Math.hypot(p.x-m[i].x,p.y-m[i].y)));
+  const q=quads.filter(a=>a&&a.length===4);if(q.length<2)return null;const m0=med(q);const lim=opt&&opt.maxSpreadPx!=null?opt.maxSpreadPx:Infinity;const kept=q.filter(a=>dist(a,m0)<=lim);if(kept.length<2)return null;
+  const quad=med(kept);return{quad,spreadPx:medOf(kept.flatMap(a=>a.map((p,i)=>Math.hypot(p.x-quad[i].x,p.y-quad[i].y)))),used:kept.length};}
+function fuseQ(quads,opt){const q=quads.filter(Boolean);if(!q.length)return null;if(q.length===1)return{quad:q[0].map(p=>({x:p.x,y:p.y})),spreadPx:0,used:1,medDevPx:0};
+  let r=null;if(typeof WSMeasure.fuseQuads==="function"){try{r=WSMeasure.fuseQuads(q,opt);}catch(_){r=null;}}else r=fuseQuadsLocal(q,opt);
+  if(!r||!r.quad)return null;return{...r,medDevPx:medOf(q.flatMap(a=>a.map((p,i)=>Math.hypot(p.x-r.quad[i].x,p.y-r.quad[i].y))))};}
+function lineNorm(l,k){const flip=(k==="ceiling"||k==="floor")?l.x1>l.x2:l.y1>l.y2;return flip?{x1:l.x2,y1:l.y2,x2:l.x1,y2:l.y1}:l;}
+function liveFuse(raw){const H=LIVE.hist,need=LIVE_CFG.minPresent,out={...raw,raw},opt={maxSpreadPx:LIVE_CFG.maxSpreadPx};
+  // un objet est affiché s'il est dans le dernier résultat ou dans au moins 3 des 5 : il ne clignote pas sur une détection manquée
+  const hr=H.filter(r=>r.ref);if(raw.ref||hr.length>=need){const base=raw.ref||hr[hr.length-1].ref;const same=hr.filter(r=>r.ref.kind===base.kind);const f=same.length>=2?fuseQ(same.map(r=>r.ref.quad),opt):null;out.ref={...base,quad:f?f.quad:base.quad};}else out.ref=null;
+  const hq=H.filter(r=>r.quad);if(raw.quad||hq.length>=need){const f=hq.length>=2?fuseQ(hq.map(r=>r.quad),opt):null;out.quad=f?f.quad:(raw.quad||hq[hq.length-1].quad);}else out.quad=null;
+  const lines={};for(const k of ["ceiling","floor","left","right"]){const ls=H.filter(r=>r.lines&&r.lines[k]).map(r=>lineNorm(r.lines[k],k));
+    lines[k]=ls.length&&((raw.lines&&raw.lines[k])||ls.length>=need)?{x1:medOf(ls.map(l=>l.x1)),y1:medOf(ls.map(l=>l.y1)),x2:medOf(ls.map(l=>l.x2)),y2:medOf(ls.map(l=>l.y2))}:null;}
+  out.lines=lines;return out;}
+// Stabilité : écart médian des coins (px) sur les 5 images, pour la feuille et pour le mur (le pire des deux) + écart-type d'orientation sur 1 s
+function liveStability(L){const H=LIVE.hist;const o=oriStats(1000);const res={n:H.length,px:null,orientSd:o?o.sd:null,stable:false};
+  const medDev=(quads,fq)=>medOf(quads.flatMap(a=>a.map((p,i)=>Math.hypot(p.x-fq[i].x,p.y-fq[i].y))));const vals=[];
+  if(L.ref){const qs=H.filter(r=>r.ref&&r.ref.kind===L.ref.kind).map(r=>r.ref.quad);if(qs.length>=LIVE_N-1)vals.push(medDev(qs,L.ref.quad));}
+  if(L.quad){const qs=H.filter(r=>r.quad).map(r=>r.quad);if(qs.length>=LIVE_N-1)vals.push(medDev(qs,L.quad));}
+  if(vals.length&&vals.length===(L.ref?1:0)+(L.quad?1:0))res.px=Math.max(...vals);
+  res.stable=H.length>=LIVE_N&&res.px!=null&&res.px<LIVE_CFG.stablePx&&(res.orientSd==null||res.orientSd<LIVE_CFG.orientSd);return res;}
+
+// ---------- Déclenchement automatique (option, désactivée par défaut, mémorisée) : tout prêt + stable 700 ms → 3 points → capture
+const AUTO={on:false,since:0,cd:0,iv:null,t:null,ready:false};const AUTO_CFG={tiltDeg:2.5,holdMs:700,dotMs:400};
+try{AUTO.on=localStorage.getItem("wsAuto")==="1";}catch(_){}
+function autoPaint(){const b=$("autoBtn");b.classList.toggle("on",AUTO.on);b.setAttribute("aria-pressed",AUTO.on?"true":"false");}
+function autoDots(n){const sh=$("shutter");sh.classList.toggle("counting",n>0);sh.querySelectorAll(".cd b").forEach((d,i)=>d.classList.toggle("on",i<n));}
+// Tout est prêt ? Feuille bien placée, plafond, sol, bords (L.ready), image stable, téléphone droit (capteur requis)
+function autoReady(){const L=LIVE.last,o=oriNow();if(!AUTO.on||!LIVE.on||!L||!L.ready||!L.stab||!L.stab.stable||Date.now()-L.at>1500||!o)return false;return Math.abs(o.roll)<AUTO_CFG.tiltDeg&&Math.abs(o.pitch)<AUTO_CFG.tiltDeg;}
+function autoCancel(){clearTimeout(AUTO.t);AUTO.t=null;AUTO.cd=0;AUTO.since=0;autoDots(0);}
+function autoTick(){const ok=autoReady();AUTO.ready=ok;if(AUTO.cd){if(!ok)autoCancel();return;}
+  if(!ok){AUTO.since=0;return;}const now=Date.now();if(!AUTO.since){AUTO.since=now;return;}if(now-AUTO.since>=AUTO_CFG.holdMs)autoCount();}
+function autoCount(){AUTO.cd=1;autoDots(1);const step=()=>{if(!AUTO.cd)return;if(AUTO.cd>=3){AUTO.t=setTimeout(()=>{if(AUTO.cd&&autoReady()){autoCancel();capturePhoto();}else autoCancel();},AUTO_CFG.dotMs);return;}
+    AUTO.t=setTimeout(()=>{if(!AUTO.cd)return;AUTO.cd++;autoDots(AUTO.cd);step();},AUTO_CFG.dotMs);};step();}
+function autoStart(){autoPaint();clearInterval(AUTO.iv);AUTO.since=0;AUTO.iv=setInterval(autoTick,100);}
+function autoStop(){clearInterval(AUTO.iv);AUTO.iv=null;autoCancel();}
+$("autoBtn").onclick=()=>{AUTO.on=!AUTO.on;try{localStorage.setItem("wsAuto",AUTO.on?"1":"0");}catch(_){}autoPaint();if(!AUTO.on)autoCancel();toast(AUTO.on?"Déclenchement automatique activé":"Déclenchement automatique désactivé");};autoPaint();
+
+// ---------- Netteté : WSMeasure.sharpness si présent ; sinon variance du laplacien sur les tuiles les plus nettes (une mur uni ne doit pas passer pour flou)
+const SHARP_CFG={blurry:12,soft:30};   // À CONFIRMER sur photos réelles (qa-engineer) : seuils du repli local
+function sharpLocal(g){const long=Math.max(g.width,g.height),f=Math.max(1,Math.round(long/1024));const w=Math.floor(g.width/f),h=Math.floor(g.height/f);const a=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0;for(let dy=0;dy<f;dy++){const o=(y*f+dy)*g.width+x*f;for(let dx=0;dx<f;dx++)s+=g.data[o+dx];}a[y*w+x]=s/(f*f);}
+  const T=32,tiles=[];for(let ty=1;ty+T<h;ty+=T)for(let tx=1;tx+T<w;tx+=T){let n=0,s=0,s2=0;for(let y=ty;y<ty+T;y++)for(let x=tx;x<tx+T;x++){const i=y*w+x;const l=4*a[i]-a[i-1]-a[i+1]-a[i-w]-a[i+w];s+=l;s2+=l*l;n++;}tiles.push(s2/n-(s/n)*(s/n));}
+  tiles.sort((p,q)=>q-p);const top=tiles.slice(0,Math.max(1,Math.ceil(tiles.length*0.2)));const score=top.reduce((p,q)=>p+q,0)/top.length;
+  return{score,verdict:score<SHARP_CFG.blurry?"blurry":score<SHARP_CFG.soft?"soft":"sharp",src:"local"};}
+function sharpOf(gray){if(typeof WSMeasure.sharpness==="function"){try{const r=WSMeasure.sharpness(gray);if(r&&typeof r.score==="number"&&r.verdict)return{score:r.score,verdict:r.verdict,src:"moteur"};}catch(_){}}return sharpLocal(gray);}
+
+// ---------- Recoupement avec une hauteur sous plafond connue : jamais de correction automatique, seulement un écart affiché
+// Repli local de WSMeasure.consistency : écart signé en %, seuils 2 % / 5 % (À CONFIRMER avec Soufflet)
+function consLocal(h,k){const d=(h-k)/k*100,a=Math.abs(d);return{deltaPct:d,verdict:a<=2?"ok":a<=5?"check":"mismatch"};}
+function consCheck(){const sv=S.survey,k=S.knownH;if(!sv||!(sv.heightCm>0)||!(k>=100&&k<=600))return null;
+  if(S.refChoice==="ceiling"||sv.heightCompleted||sv.heightIncomplete)return{skip:true,cls:"",text:S.refChoice==="ceiling"?"Recoupement sans objet : la mesure repose déjà sur la hauteur sous plafond saisie.":"Recoupement sans objet : la hauteur du mur vient de votre saisie."};
+  let r=null;if(typeof WSMeasure.consistency==="function"){try{r=WSMeasure.consistency(sv,k);}catch(_){r=null;}}
+  if(!r||typeof r.deltaPct!=="number"||!isFinite(r.deltaPct))r=consLocal(sv.heightCm,k);
+  const v=String(r.verdict||"").toLowerCase();const kind=/^in|bad|fail|mismatch/.test(v)?"bad":/^(ok|consistent|coh|good|pass)/.test(v)?"ok":"check";
+  const label={ok:"OK",check:"À vérifier",bad:"Incohérent"}[kind];
+  return{skip:false,kind,cls:kind==="ok"?"ok":"",deltaPct:r.deltaPct,text:`Mesuré ${fm(sv.heightCm)} m · connu ${fm(k)} m · écart ${frn(Math.abs(r.deltaPct),1)} % : ${label}.${kind==="bad"?" La mesure n'est pas corrigée : vérifiez les coins et la référence.":""}`};}
+function qualityCards(){
+  const bb=$("blurBox"),sh=S.sharp;if(sh&&(sh.verdict==="blurry"||sh.verdict==="soft")){const bl=sh.verdict==="blurry";bb.style.display="";bb.className="conf tight";
+    bb.innerHTML=`${ICON("alert")}<span>${bl?"Photo floue : reprenez-la.":"Photo un peu floue : la mesure reste possible, une photo plus nette est préférable."}</span>${bl?`<button class="link" type="button" id="blurRetake">Reprendre</button>`:""}`;
+    const rb=$("blurRetake");if(rb)rb.onclick=()=>{if(camOK())openCamera();else show("shoot");};}else bb.style.display="none";
+  const tb=$("tiltBox"),po=S.capturePose;if(po&&(Math.abs(po.pitch)>6||Math.abs(po.roll)>4)){tb.style.display="";tb.className="conf tight";S.tiltDeg=Math.hypot(po.pitch,po.roll);
+    tb.innerHTML=`${ICON("alert")}<span>Téléphone incliné de ${frn(S.tiltDeg,1)}° à la prise de vue : précision réduite, reprenez de face si possible.</span>`;}else tb.style.display="none";
+  const c=consCheck();for(const id of ["consBox","consRes"]){const el=$(id);if(!c){el.style.display="none";continue;}el.style.display="";el.className="conf"+(c.cls?" "+c.cls:"")+(id==="consBox"?" tight":"");el.innerHTML=`${ICON(c.kind==="ok"?"check":"alert")}<span>${c.text}</span>`;}}
+$("knownH").addEventListener("input",e=>{const v=Math.round(Number(e.target.value)||0);S.knownH=v>=100&&v<=600?v:null;qualityCards();});
 document.addEventListener("visibilitychange",()=>{if(document.hidden){stopCamera();}else if($("camera").classList.contains("active"))openCamera();else if($("home").classList.contains("active"))startHomePreview();});
 $("viewfinder").addEventListener("click",()=>show("prepare"));$("viewfinder").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();show("prepare");}});
-$("demoPhoto").onclick=()=>{const d=demoPhoto();window.__wsDemo=d.preset;setRefChoice("a4");loadPhoto(d.src,d.preset);};
+$("demoPhoto").onclick=()=>{S.knownH=null;$("knownH").value="";const d=demoPhoto();window.__wsDemo=d.preset;setRefChoice("a4");loadPhoto(d.src,d.preset);};
 
 // ============================================================ GÉOMÉTRIE (homographie 4 points, tableaux [x,y]) — même base que les doublures
 function adj(m){return[m[4]*m[8]-m[5]*m[7],m[2]*m[7]-m[1]*m[8],m[1]*m[5]-m[2]*m[4],m[5]*m[6]-m[3]*m[8],m[0]*m[8]-m[2]*m[6],m[2]*m[3]-m[0]*m[5],m[3]*m[7]-m[4]*m[6],m[1]*m[6]-m[0]*m[7],m[0]*m[4]-m[1]*m[3]];}
@@ -1141,11 +1269,11 @@ function quadAspect(q,W,Hh){const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);const sim
 function orderQuad(pts){const cx=pts.reduce((s,p)=>s+p[0],0)/4,cy=pts.reduce((s,p)=>s+p[1],0)/4;const s=pts.slice().sort((a,b)=>Math.atan2(a[1]-cy,a[0]-cx)-Math.atan2(b[1]-cy,b[0]-cx));let k=0;for(let i=1;i<4;i++)if(s[i][0]+s[i][1]<s[k][0]+s[k][1])k=i;return[0,1,2,3].map(i=>s[(k+i)%4]);}
 
 // ============================================================ PHOTO : image de travail (≤ 2 048 px) pour WSMeasure, originale pour la loupe
-function loadPhoto(src,preset){const im=new Image();im.onload=()=>{const m=2048,k=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,c.width,c.height);
+function loadPhoto(src,preset,extra){const im=new Image();im.onload=()=>{const m=2048,k=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,c.width,c.height);
   const d=x.getImageData(0,0,c.width,c.height).data,n=c.width*c.height;const R=new Uint8ClampedArray(n),G=new Uint8ClampedArray(n),B=new Uint8ClampedArray(n);for(let i=0,j=0;i<n;i++,j+=4){R[i]=d[j];G[i]=d[j+1];B[i]=d[j+2];}
   S.orig=im;S.img={src:k<1?c.toDataURL("image/jpeg",.9):src,w:c.width,h:c.height};S.planes={r:{width:c.width,height:c.height,data:R},g:{width:c.width,height:c.height,data:G},b:{width:c.width,height:c.height,data:B}};S.gray=WSMeasure.toGray(d,c.width,c.height);
   const fromAr=!!(preset&&preset.refKind==="ar");if(!fromAr){S.ar=null;if(S.refChoice==="ar"){const sel=$("refChoice").querySelector("input:checked");S.refChoice=sel?sel.value:"a4";}}
-  Object.assign(S,{preset:preset||null,quad:null,refQuad:null,refDetected:false,refConf:0,k1:0,lines:null,survey:null,rect:null,plan:null,openings:[],opProposed:false,bb:{enabled:false,heightCm:null,source:null,pt:null,unc:0},w:0,h:0,hFull:0,number:null,sent:false,corrected:false,placing:[],wallProposed:false,wallFromLive:false,wallPartial:null,compHeight:null,visibleHeightCm:0,outlineCm:null,outlineZones:[],demo:!!preset,stageMode:"none"});
+  Object.assign(S,{preset:preset||null,quad:null,refQuad:null,refDetected:false,refConf:0,k1:0,lines:null,survey:null,rect:null,plan:null,openings:[],opProposed:false,bb:{enabled:false,heightCm:null,source:null,pt:null,unc:0},w:0,h:0,hFull:0,number:null,sent:false,corrected:false,placing:[],wallProposed:false,wallFromLive:false,wallPartial:null,compHeight:null,visibleHeightCm:0,outlineCm:null,outlineZones:[],refDet:null,k1Est:null,demo:!!preset,stageMode:"none",burst:(extra&&extra.burst)||null,burstGrays:(extra&&extra.grays)||null,capturePose:(extra&&extra.pose)||null,sharp:(extra&&extra.sharp)||null,grayFull:null,refine:null,tiltDeg:0});
   opSel=null;adding=null;$("rectBox").classList.remove("adding");$("imgA").src=S.img.src;$("imgV").src=S.img.src;$("light").src=S.img.src;$("bbSeg").querySelectorAll("button").forEach(b=>b.classList.toggle("sel",b.dataset.bb==="0"));$("bbBox").style.display="none";$("modeBb").disabled=true;$("bbInput").value="";renderOpenings();
   show("analyze");startAnalysis();};im.src=src;}
 // Mur de démo : scène plane (418 × 250 cm à 3 px/cm — feuille A4 au milieu à hauteur des yeux, fenêtre 120 × 140 à 95 cm du sol,
@@ -1182,7 +1310,7 @@ function startAnalysis(){$("scan").classList.add("on");$("validateA").disabled=t
     if(S.refChoice!=="ceiling"){if(pre.refQuad){S.refQuad=pre.refQuad.map(p=>p.slice());S.refKind=pre.refKind||"a4";S.refDetected=true;S.refConf=pre.refConf||.9;}
       else{// Mire d'abord (validée par son code), puis feuille A4, quel que soit le choix annoncé : c'est la photo qui tranche.
         let det=WSMeasure.detectReference(S.gray,{maxSideFrac:.7});if(!det&&S.liveHint&&S.liveHint.ref){const lh=liveHintFor(S.img.w,S.img.h);if(lh&&lh.ref){const near=lh.ref.quad.reduce((m,p)=>({x:m.x+p[0]*S.img.w/4,y:m.y+p[1]*S.img.h/4}),{x:0,y:0});det=WSMeasure.detectReference(S.gray,{maxSideFrac:.7,near});}}
-        if(det&&det.confidence>=0.6){S.refQuad=det.quad.map(toNorm);S.refKind=det.kind;S.refChoice=det.kind==="mire"?"mire":"a4";S.refDetected=true;S.refConf=det.confidence;}else{S.refQuad=null;S.refDetected=false;}}}
+        S.refDet=det&&det.confidence>=0.6?det:null;if(det&&det.confidence>=0.6){S.refQuad=det.quad.map(toNorm);S.refKind=det.kind;S.refChoice=det.kind==="mire"?"mire":"a4";S.refDetected=true;S.refConf=det.confidence;}else{S.refQuad=null;S.refDetected=false;}}}
     if(pre.quad){S.quad=pre.quad.map(p=>p.slice());S.wallProposed=true;}
     else{S.wallPartial=null;const inside=S.refQuad?{x:S.refQuad.reduce((a,p)=>a+p[0],0)/4*S.img.w,y:S.refQuad.reduce((a,p)=>a+p[1],0)/4*S.img.h}:undefined;
       const pw=WSMeasure.proposeWallCorners(S.gray,inside?{inside}:{});
@@ -1195,10 +1323,32 @@ function startAnalysis(){$("scan").classList.add("on");$("validateA").disabled=t
           const ceil=cand&&cand.ceilings[0]?mid(cand.ceilings[0],false):null,floor=cand&&cand.floors[0]?mid(cand.floors[0],false):null,left=cand&&cand.lefts[0]?mid(cand.lefts[0],true):null,right=cand&&cand.rights[0]?mid(cand.rights[0],true):null;
           const t=ceil??.03,b=floor??.97,l=left??.05,r=right??.95;S.quad=[[l,t],[r,t],[r,b],[l,b]];S.wallProposed=false;
           S.wallPartial={ceiling:ceil!=null,floor:floor!=null,left:left!=null,right:right!=null,any:ceil!=null||floor!=null||left!=null||right!=null};}}}
-    if(S.lines&&S.lines.length){const rd=WSMeasure.estimateRadialDistortion(S.gray,S.lines);S.k1=(rd&&rd.k1)||0;}
+    burstFuse();refineInitial();
+    if(S.lines&&S.lines.length){const rd=WSMeasure.estimateRadialDistortion(S.gray,S.lines);S.k1=(rd&&rd.k1)||0;S.k1Est=rd||null;}
     if(pre.openings){S.openings=pre.openings.map(o=>({...o}));S.opProposed=true;renderOpenings();}
     $("scan").classList.remove("on");setStageMode(S.refChoice==="ceiling"?"wall":S.refQuad?"wall":"ref");computeMeasure();rectifyView();
     const rn=S.refKind==="mire"?"Mire":"Feuille";toast(S.demo?"Mur de démo : feuille et coins pré-remplis":S.refQuad?(S.wallProposed?`${rn} détectée, coins proposés : vérifiez-les`:S.wallPartial&&S.wallPartial.any?`${rn} détectée · mur incomplet sur la photo, voir ci-dessous`:`${rn} détectée : placez les 4 coins du mur`):S.refChoice==="ceiling"?"Placez les 4 coins du mur":S.refChoice==="mire"?"Tapez les 4 coins de la mire":"Tapez les 4 coins de la feuille");},1500);}
+// Rafale : la référence et les coins sont aussi cherchés sur les autres images ; les quads sont fusionnés (médiane) si les images sont quasi alignées
+// (écart max BURST_CFG.maxSpreadPx sur l'image de travail) — sinon on garde le résultat de la photo la plus nette, sans mélange.
+function burstFuse(){const B=S.burst,gs=S.burstGrays;S.burstGrays=null;if(!B||!gs||!gs.length||S.demo)return;const t0=performance.now();const opt={maxSpreadPx:BURST_CFG.maxSpreadPx};B.fuse={ref:null,wall:null};
+  const inside=S.refQuad?{x:S.refQuad.reduce((a,p)=>a+p[0],0)/4*S.img.w,y:S.refQuad.reduce((a,p)=>a+p[1],0)/4*S.img.h}:undefined;
+  try{if(S.refQuad&&S.refDetected&&S.refChoice!=="ceiling"){const qs=[toPx(S.refQuad)];for(const g of gs){const d=WSMeasure.detectReference(g,{maxSideFrac:.7});if(d&&d.confidence>=0.6&&d.kind===S.refKind)qs.push(d.quad);}
+      const f=qs.length>=2?fuseQ(qs,opt):null;B.fuse.ref={frames:qs.length,used:f?f.used:1,spreadPx:f?Math.round(f.spreadPx*100)/100:null,fused:!!f};if(f&&f.used>=2)S.refQuad=f.quad.map(toNorm);}}catch(e){console.warn("fusion rafale (référence)",e);}
+  try{if(S.wallProposed&&S.lines&&!S.wallFromLive&&S.quad){const qs=[toPx(S.quad)];for(const g of gs){const w=WSMeasure.proposeWallCorners(g,inside?{inside}:{});if(w&&w.confidence>=0.5)qs.push(w.quad);}
+      const f=qs.length>=2?fuseQ(qs,opt):null;B.fuse.wall={frames:qs.length,used:f?f.used:1,spreadPx:f?Math.round(f.spreadPx*100)/100:null,fused:!!f};if(f&&f.used>=2)S.quad=f.quad.map(toNorm);}}catch(e){console.warn("fusion rafale (mur)",e);}
+  B.fuseMs=Math.round(performance.now()-t0);}
+// Affinage sur les arêtes à pleine résolution (≤ 4 096 px) : WSMeasure.refineWallQuad si présent, sinon rien (pas de repli : on ne bouge pas les coins sans moteur)
+function grayFull(){if(S.grayFull)return S.grayFull;const im=S.orig;if(!im)return null;const k=Math.min(1,4096/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k);
+  const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,w,h);S.grayFull=WSMeasure.toGray(x.getImageData(0,0,w,h).data,w,h);return S.grayFull;}
+const REFINE_JUMP=0.01;   // un coin affiné qui s'éloigne de plus de 1 % du grand côté est ignoré (l'affinage ajuste, il ne déplace pas)
+function refineRun(){if(typeof WSMeasure.refineWallQuad!=="function"||!S.quad)return null;const full=grayFull();if(!full)return null;const q=S.quad.map(p=>({x:p[0]*full.width,y:p[1]*full.height}));
+  try{const r=WSMeasure.refineWallQuad(full,q);if(!r||!r.refined||!r.quad||r.quad.length!==4)return null;return{r,full,old:q};}catch(e){console.warn("affinage des coins",e);return null;}}
+function refineInitial(){S.refine=null;if(!S.wallProposed||S.corrected)return;const o=refineRun();if(!o)return;const lim=REFINE_JUMP*Math.max(o.full.width,o.full.height);
+  if(o.r.quad.some((p,i)=>Math.hypot(p.x-o.old[i].x,p.y-o.old[i].y)>lim)){S.refine={rejected:true};return;}
+  S.quad=o.r.quad.map(p=>[clamp(p.x/o.full.width,0,1),clamp(p.y/o.full.height,0,1)]);S.refine={residualPx:o.r.residualPx,confidence:o.r.confidence,at:"analyse"};}
+// Après un déplacement de coin : seul le coin touché (intersection des deux côtés touchés) prend la valeur affinée ; les autres restent ceux de l'utilisateur
+function refineAfterDrag(i){const o=refineRun();if(!o)return;const lim=REFINE_JUMP*Math.max(o.full.width,o.full.height);const p=o.r.quad[i];if(Math.hypot(p.x-o.old[i].x,p.y-o.old[i].y)>lim)return;
+  S.quad[i]=[clamp(p.x/o.full.width,0,1),clamp(p.y/o.full.height,0,1)];S.refine={residualPx:o.r.residualPx,confidence:o.r.confidence,at:"corner",corner:i};}
 function setStageMode(m){S.stageMode=m;stageA.className="stage m-"+m+(m==="ref"&&!S.refQuad?" placing":"");$("stageModes").querySelectorAll("button").forEach(b=>b.classList.toggle("sel",b.dataset.mode===m));layoutA();}
 $("stageModes").querySelectorAll("button").forEach(b=>b.onclick=()=>{if(b.disabled)return;if(b.dataset.mode==="outline"&&!startOutline()){toast("Placez d'abord la référence et les coins du mur");return;}setStageMode(b.dataset.mode);refreshStatus();if(b.dataset.mode==="baseboard")stageA.scrollIntoView({block:"center",behavior:"smooth"});});
 function layoutA(){if(!S.img)return;const W=stageA.clientWidth,Hh=stageA.clientHeight;if(!W)return;const P=q=>q.map(p=>`${p[0]*W},${p[1]*Hh}`).join(" ");
@@ -1232,6 +1382,12 @@ function outlineZones(sv){if(!S.outlineCm||!(sv.widthCm>0&&sv.heightCm>0))return
     if(prev&&prev.key===key&&Math.abs(prev.x1-b.x0)<0.01)prev.x1=b.x1;else zones.push({x0:b.x0,x1:b.x1,comp:b.comp,key});}
   const out=[];zones.forEach((z,zi)=>z.comp.forEach(([y0,y1],ci)=>{const w=Math.round((z.x1-z.x0)*10)/10,h=Math.round((y1-y0)*10)/10;if(w>=1&&h>=1)out.push({id:`out-${zi}-${ci}`,t:"excluded",x:Math.round(z.x0*10)/10,y:Math.round(y0*10)/10,w,h,conf:1,src:"outline"});}));return out;}
 const allOpenings=()=>S.openings.concat(S.outlineZones||[]);
+// Codes de refus du moteur (photo à reprendre ou mesure à corriger avant tout devis) et codes informatifs (sans effet sur la confiance)
+const REFUSAL=(WSMeasure.REFUSAL_WARNINGS&&[...WSMeasure.REFUSAL_WARNINGS])||["measure_implausible","image_blurry","reference_too_small","distortion_extreme","degenerate"];
+const INFORMATIONAL=["baseboard_height_required","reference_small","height_completed_manual","wall_trapezoid"];
+const surveyWarnings=sv=>sv?[...new Set([...((sv.checks&&sv.checks.warnings)||[]),...(sv.warnings||[])])]:[];
+const hasRefusal=sv=>surveyWarnings(sv).some(w=>REFUSAL.includes(w)||w==="reference_ambiguous");
+const WARN_TXT={measure_implausible:"Dimensions invraisemblables pour un mur : la référence est probablement mal détectée. Vérifiez la feuille et les coins, ou reprenez la photo.",reference_ambiguous:"Plusieurs formes ressemblent à la feuille, ou elle est loin du milieu du mur : vérifiez que le cadre vert est bien sur la feuille.",reference_scale_suspect:"La taille de la feuille par rapport au mur est inhabituelle : vérifiez la feuille et les coins.",reference_small:"Feuille petite dans l'image : précision un peu réduite, rapprochez-vous la prochaine fois.",image_soft:"Photo légèrement floue : précision réduite.",image_blurry:"Photo floue : reprenez-la, téléphone bien stable.",distortion_strong:"Déformation de l'objectif marquée : évitez le grand-angle (×0,5) et le zoom.",distortion_extreme:"Déformation de l'objectif trop forte pour mesurer : reprenez avec l'objectif principal (×1).",height_completed_manual:"Plafond hors cadre sur la photo : la largeur est mesurée, la hauteur est celle que vous avez saisie.",height_incomplete:"Plafond hors cadre : la hauteur affichée est seulement la partie visible. Saisissez la hauteur du mur pour compléter.",floor_line_ambiguous:"La ligne du sol est incertaine (plinthe ou ombre) : vérifiez les deux coins du bas.",wall_corners_inconsistent:"Les côtés opposés du mur ne concordent pas : vérifiez les quatre coins avec la loupe.",wall_trapezoid:"Les deux hauteurs diffèrent : le mur est traité comme un trapèze (hauteurs gauche et droite conservées).",reference_aspect_mismatch:"La feuille semble inclinée ou pas tout à fait à plat : l'échelle est moins sûre. Recollez-la bien à plat si possible.",reference_too_small:"La feuille est petite sur la photo : rapprochez-vous ou utilisez la mire pour plus de précision.",distortion_high:"L'objectif déforme beaucoup l'image (grand-angle) : la mesure reste indicative. Évitez le mode ×0,5.",distortion_not_estimated:"La déformation de l'objectif n'a pas pu être estimée : les bords du mur ne sont pas assez visibles.",uncertainty_above_display_tolerance:"La précision réelle dépasse la tolérance affichée : refaites la photo plus près, de face.",baseboard_height_required:"Indiquez la hauteur de plinthe (mesurée sur la photo ou saisie) pour la déduire."};
 let drag=null;function ptr(e){const r=stageA.getBoundingClientRect();return[clamp((e.clientX-r.left)/r.width,0,1),clamp((e.clientY-r.top)/r.height,0,1)];}
 stageA.addEventListener("pointerdown",e=>{if(!S.img||$("scan").classList.contains("on"))return;const t=e.target.closest(".handle");const p=ptr(e);
   if(t&&getComputedStyle(t).display!=="none"&&t.dataset.a==="out"){const i=+t.dataset.i;const q=outlineImg();drag={a:"out",i,off:[q[i][0]-p[0],q[i][1]-p[1]],p:q[i].slice(),moved:false,t0:Date.now()};}
@@ -1246,7 +1402,7 @@ window.addEventListener("pointerup",()=>{if(!drag)return;const d=drag;drag=null;
   if(d.a==="place"){S.placing.push(p);if(S.placing.length===4){S.refQuad=orderQuad(S.placing).map(q=>toNorm(WSMeasure.snapToEdge(S.gray,toPx1(q),12)));S.placing=[];S.refDetected=false;S.refKind="manual_a4";S.refConf=0;setStageMode("ref");computeMeasure();rectifyView();toast("Feuille placée : ajustez ses coins si besoin, puis les coins du mur");}else layoutA();refreshStatus();}
   else if(d.a==="bb"){S.bb.pt=p;measureBb();}
   else if(d.a==="out"){const now=Date.now();if(!d.moved&&S.outlineCm.length>4&&lastOutTap&&lastOutTap.i===d.i&&now-lastOutTap.t<450){S.outlineCm.splice(d.i,1);lastOutTap=null;toast("Point retiré");}else{lastOutTap={i:d.i,t:now};const sn=WSMeasure.snapToEdge(S.gray,toPx1(p),10);const cm=imgToCm(toNorm(sn));if(cm&&d.moved)S.outlineCm[d.i]=cm;}computeMeasure();rectifyView();}
-  else{const sn=WSMeasure.snapToEdge(S.gray,toPx1(p),12);S[d.a][d.i]=toNorm(sn);if(d.a==="quad")S.corrected=true;layoutA();computeMeasure();rectifyView();}});
+  else{const sn=WSMeasure.snapToEdge(S.gray,toPx1(p),12);S[d.a][d.i]=toNorm(sn);if(d.a==="quad"){S.corrected=true;refineAfterDrag(d.i);}layoutA();computeMeasure();rectifyView();}});
 window.addEventListener("resize",()=>{layoutA();layoutRectOps();renderViz();});
 // Loupe ×3 : 120 × 120 px suivant le doigt, zone de l'image originale agrandie trois fois par rapport à l'écran, réticule
 function loupe(p,e){const c=$("loupe"),x=c.getContext("2d");const src=S.orig||$("imgA");const sPx=stageA.clientWidth/S.img.w;const ow=src.naturalWidth||src.width,oh=src.naturalHeight||src.height;const win=40/sPx*(ow/S.img.w);
@@ -1258,7 +1414,10 @@ function computeMeasure(light){if(!S.img||!S.quad){refreshStatus();return;}const
   if(S.refChoice==="ar"){if(!S.refQuad){S.survey=null;refreshStatus();return;}refQuad=toPx(S.refQuad);refSize={w:100,h:100};refKind="a4";}
   else if(S.refChoice==="ceiling"){refQuad=wallQuad;refSize={w:S.ceiling*quadAspect(wallQuad,imageSize.w,imageSize.h),h:S.ceiling};refKind="manual_a4";}
   else{if(!S.refQuad){S.survey=null;refreshStatus();return;}refQuad=toPx(S.refQuad);refSize=S.refChoice==="mire"?{w:19,h:27.7}:{w:21,h:29.7};refKind=S.refDetected?S.refKind:"manual_a4";}
-  let sv=WSMeasure.rectify({wallQuad,refQuad,refSizeCm:refSize,refKind,k1:S.k1,imageSize});S.outlineZones=outlineZones(sv);sv.openings=allOpenings().map(toV2);
+  let sv=WSMeasure.rectify({wallQuad,refQuad,refSizeCm:refSize,refKind,k1:S.k1,imageSize});
+  // Garde-fous de qualité du moteur (plausibilité, référence ambiguë ou d'échelle suspecte, flou, distorsion) : jamais silencieux
+  if(typeof WSMeasure.withQualityWarnings==="function"&&S.refChoice!=="ceiling"&&S.refChoice!=="ar"){try{sv=WSMeasure.withQualityWarnings(sv,{sharpness:S.sharp&&S.sharp.src==="moteur"?S.sharp:undefined,reference:S.refDet&&!S.corrected?S.refDet:undefined,distortion:S.k1Est||undefined},refQuad);}catch(e){console.warn("quality",e);}}
+  S.outlineZones=outlineZones(sv);sv.openings=allOpenings().map(toV2);
   // Mur incomplet sur la photo (plafond ou sol hors cadre) et coins non corrigés : la largeur est mesurée, la hauteur visible est un
   // minimum ; la hauteur complète vient de la saisie (sol → plafond). Les ouvertures sont repositionnées depuis le sol.
   S.visibleHeightCm=0;const topMissing=!!(S.wallPartial&&S.wallPartial.any&&!S.wallPartial.ceiling&&!S.corrected),botMissing=!!(S.wallPartial&&S.wallPartial.any&&!S.wallPartial.floor&&!S.corrected);
@@ -1309,14 +1468,15 @@ function measureBb(){if(!S.survey||!S.bb.pt)return;const r=WSMeasure.measureBase
 // États de l'écran Vérifier
 function refreshStatus(){const sv=S.survey;const ok=!!(sv&&sv.widthCm>0&&sv.heightCm>0);const rs=$("refStatus"),ws=$("wallStatus");const scanning=$("scan").classList.contains("on");
   $("ceilVerify").style.display=S.refChoice==="ceiling"?"flex":"none";$("modeRef").textContent=S.refChoice==="mire"?"Mire":"Feuille";$("modeRef").disabled=S.refChoice==="ceiling";
-  if(!S.img||scanning){rs.className="conf wait tight";rs.innerHTML=`${ICON("scan")}<span>${scanning?"Analyse de la photo en cours":"En attente d'une photo"}</span>`;ws.style.display="none";$("toResult").disabled=true;$("validateA").disabled=true;return;}
+  if(!S.img||scanning){rs.className="conf wait tight";rs.innerHTML=`${ICON("scan")}<span>${scanning?"Analyse de la photo en cours":"En attente d'une photo"}</span>`;ws.style.display="none";$("toResult").disabled=true;$("validateA").disabled=true;qualityCards();return;}
   ws.style.display="";const reset=()=>{S.refQuad=null;S.placing=[];S.survey=null;S.refDetected=false;setStageMode("ref");computeMeasure();rectifyView();refreshStatus();};
   if(S.refChoice==="ceiling"){rs.className="conf tight";rs.innerHTML=`${ICON("alert")}<span>Aucune référence sur la photo : la mesure repose sur la hauteur sous plafond saisie — estimation ± 5 %.</span>`;}
   else if(!S.refQuad){rs.className="conf tight";rs.innerHTML=`${ICON("alert")}<span>${S.refChoice==="mire"?"Mire non détectée. Tapez ses 4 coins (bord extérieur du cadre noir)":"Feuille non détectée. Tapez ses 4 coins"}, dans l'ordre : haut gauche, haut droit, bas droit, bas gauche. Gardez le doigt appuyé, la loupe suit. <b>${S.placing.length}/4</b></span>${S.placing.length?`<button class="link" type="button" id="placeReset">Recommencer</button>`:""}`;const pr=$("placeReset");if(pr)pr.onclick=()=>{S.placing=[];layoutA();refreshStatus();};}
   else if(S.refDetected){rs.className="conf ok tight";rs.innerHTML=`${ICON("check")}<span>${S.refKind==="mire"?"Mire WallScan":"Feuille A4"} détectée (confiance ${Math.round(S.refConf*100)} %), cadre vert. Ajustez ses coins si besoin.</span>`;}
   else{rs.className="conf ok tight";rs.innerHTML=`${ICON("check")}<span>${S.refChoice==="mire"?"Mire":"Feuille"} placée à la main — estimation ± 5 %.</span><button class="link" type="button" id="placeReset">Recommencer</button>`;$("placeReset").onclick=reset;}
-  if(S.corrected){ws.className="conf ok tight";ws.innerHTML=`${ICON("check")}<span>Coins du mur ajustés à la main.</span>`;}
-  else if(S.wallProposed){ws.className="conf ok tight";ws.innerHTML=`${ICON("check")}<span>Coins du mur ${S.demo?"pré-remplis":S.wallFromLive?"repris du viseur":"proposés"} — vérifiez-les avec la loupe, surtout en haut.</span>`;}
+  const rf=S.refine&&S.refine.residualPx!=null?` Coins affinés sur les arêtes (résidu ${frn(S.refine.residualPx,1)} px).`:"";
+  if(S.corrected){ws.className="conf ok tight";ws.innerHTML=`${ICON("check")}<span>Coins du mur ajustés à la main.${rf}</span>`;}
+  else if(S.wallProposed){ws.className="conf ok tight";ws.innerHTML=`${ICON("check")}<span>Coins du mur ${S.demo?"pré-remplis":S.wallFromLive?"repris du viseur":"proposés"} — vérifiez-les avec la loupe, surtout en haut.${rf}</span>`;}
   else if(S.wallPartial&&S.wallPartial.any){const miss=[];if(!S.wallPartial.ceiling)miss.push("le plafond");if(!S.wallPartial.floor)miss.push("le sol");if(!S.wallPartial.left)miss.push("le bord gauche");if(!S.wallPartial.right)miss.push("le bord droit");
     ws.className="conf tight";ws.innerHTML=`${ICON("alert")}<span>${miss.length?`Sur cette photo, ${miss.join(", ")} ${miss.length>1?"ne sont pas visibles":"n'est pas visible"} : ${miss.includes("le plafond")||miss.includes("le sol")?"la hauteur ne peut pas être mesurée : indiquez-la ci-dessous (sol → plafond), ou reprenez la photo en reculant, du plafond au sol.":"la largeur n'est pas sûre : placez les coins manquants à la main ou reculez."}`:"Les bords trouvés ne se recoupent pas nettement : vérifiez les 4 coins avec la loupe."}</span>`;}
   else{ws.className="conf tight";ws.innerHTML=`${ICON("alert")}<span>Placez les 4 coins du mur : plafond à gauche et à droite, sol à gauche et à droite (sous la plinthe).</span>`;}
@@ -1328,7 +1488,10 @@ function refreshStatus(){const sv=S.survey;const ok=!!(sv&&sv.widthCm>0&&sv.heig
     $("compFoot").textContent=S.survey.heightCompleted?`Largeur mesurée ${fm(S.survey.widthCm)} m · visible sur la photo ≥ ${fm(S.visibleHeightCm)} m · hauteur retenue ${fm(S.survey.heightCm)} m (saisie).`:`Largeur mesurée ${fm(S.survey.widthCm)} m · visible sur la photo ≥ ${fm(S.visibleHeightCm)} m. Indiquez la hauteur réelle (au moins ${Math.ceil(S.visibleHeightCm)} cm), ou reprenez la photo du plafond au sol.`;}
   else{cb.style.display="none";}
   const bs=$("bbStatus");if(S.bb.enabled){if(S.bb.heightCm==null){bs.className="conf tight";bs.innerHTML=`${ICON("alert")}<span>Mesurez ou saisissez la hauteur de plinthe. Sans hauteur, l'option reste inactive : rien n'est déduit.</span>`;}else{bs.className="conf ok tight";bs.innerHTML=`${ICON("check")}<span>Plinthe de ${fq(S.bb.heightCm)} cm ${S.bb.source==="measured"?`mesurée sur la photo (± ${fq(Math.max(0.5,Math.round(S.bb.unc*2)/2))} cm)`:"saisie"} — le papier s'arrête en haut de la plinthe.</span>`;}}
-  const okFinal=ok&&!(S.survey&&S.survey.heightIncomplete);$("toResult").disabled=!okFinal;if(okFinal)updateResult();else $("validateA").disabled=true;}
+  qualityCards();
+  const refused=!!(S.survey&&hasRefusal(S.survey));const qs=$("qualStatus");
+  if(refused){const codes=surveyWarnings(S.survey).filter(w=>REFUSAL.includes(w)||w==="reference_ambiguous");qs.style.display="";qs.className="conf tight";qs.innerHTML=`${ICON("alert")}<span><b>Mesure refusée en l'état.</b> ${codes.map(w=>WARN_TXT[w]||w).join(" ")}</span>`;}else qs.style.display="none";
+  const okFinal=ok&&!(S.survey&&S.survey.heightIncomplete)&&!refused;$("toResult").disabled=!okFinal;if(okFinal)updateResult();else $("validateA").disabled=true;}
 
 // ============================================================ RÉSULTAT : dimensions ± tolérance, surface hors ouvertures, avertissements
 function updateResult(){const sv=S.survey;const ok=!!(sv&&sv.widthCm>0&&sv.heightCm>0);const c=$("confBox");
@@ -1336,18 +1499,20 @@ function updateResult(){const sv=S.survey;const ok=!!(sv&&sv.widthCm>0&&sv.heigh
   const bb=sv.baseboard.enabled&&sv.baseboard.heightCm!=null?sv.baseboard.heightCm:0;S.hFull=sv.heightCm;S.w=Math.round(sv.widthCm);S.h=Math.round(sv.heightCm-bb);
   const tol=sv.displayTolerancePct;$("kW").textContent=frn(sv.widthCm/100);$("kH").textContent=frn(sv.heightCm/100);$("kTol").textContent=`± ${tol} %`;$("kA").textContent=frn(Math.round(billableArea(wall())*10)/10,1);
   const ceilingMode=S.refChoice==="ceiling";S.method=ceilingMode?"hauteur sous plafond":S.refKind==="ar"?"réalité augmentée (ARCore)":S.refKind==="mire"?"mire WallScan":S.refDetected?"feuille A4":"feuille A4 tapée à la main";S.confidence=ceilingMode?0.75:S.refKind==="ar"?0.9:S.refKind==="mire"?0.95:S.refDetected?0.9:0.82;
-  const warns=[...new Set([...((sv.checks&&sv.checks.warnings)||[]),...(sv.warnings||[])])];
+  const warns=surveyWarnings(sv);
+  if(hasRefusal(sv))S.confidence=Math.min(S.confidence,0.5);else if(warns.some(w=>!INFORMATIONAL.includes(w)))S.confidence=Math.min(S.confidence,0.79);
   if(ceilingMode){c.className="conf";c.innerHTML=`${ICON("alert")}<span>D'après la hauteur sous plafond saisie (${S.ceiling} cm), sans référence sur la photo : estimation ± 5 %. Pour un devis, refaites la mesure avec une feuille A4 ou la mire.</span>`;}
   else if(S.refDetected){c.className="conf ok";c.innerHTML=`${ICON("check")}<span>${S.refKind==="mire"?"Mire WallScan":"Feuille A4"} détectée automatiquement · précision ± ${tol} %.</span>`;}
   else{c.className="conf ok";c.innerHTML=`${ICON("check")}<span>Feuille tapée à la main · estimation ± ${tol} %.</span>`;}
-  const WARN_FR={height_completed_manual:"Plafond hors cadre sur la photo : la largeur est mesurée, la hauteur est celle que vous avez saisie.",height_incomplete:"Plafond hors cadre : la hauteur affichée est seulement la partie visible. Saisissez la hauteur du mur pour compléter.",floor_line_ambiguous:"La ligne du sol est incertaine (plinthe ou ombre) : vérifiez les deux coins du bas.",wall_corners_inconsistent:"Les côtés opposés du mur ne concordent pas : vérifiez les quatre coins avec la loupe.",wall_trapezoid:"Les deux hauteurs diffèrent : le mur est traité comme un trapèze (hauteurs gauche et droite conservées).",reference_aspect_mismatch:"La feuille semble inclinée ou pas tout à fait à plat : l'échelle est moins sûre. Recollez-la bien à plat si possible.",reference_too_small:"La feuille est petite sur la photo : rapprochez-vous ou utilisez la mire pour plus de précision.",distortion_high:"L'objectif déforme beaucoup l'image (grand-angle) : la mesure reste indicative. Évitez le mode ×0,5.",distortion_not_estimated:"La déformation de l'objectif n'a pas pu être estimée : les bords du mur ne sont pas assez visibles.",uncertainty_above_display_tolerance:"La précision réelle dépasse la tolérance affichée : refaites la photo plus près, de face.",baseboard_height_required:"Indiquez la hauteur de plinthe (mesurée sur la photo ou saisie) pour la déduire."};
+  if(!ceilingMode&&S.confidence<0.8){c.className="conf";c.innerHTML=`${ICON("alert")}<span>${hasRefusal(sv)?"Mesure refusée en l'état : corrigez la référence ou les coins, ou reprenez la photo.":"Mesure à vérifier avant d'envoyer le devis"} (confiance ${Math.round(S.confidence*100)} %).</span>`;}
+  const WARN_FR=WARN_TXT;
   $("warnBox").innerHTML=warns.map(w=>`<div class="conf">${ICON("alert")}<span>${WARN_FR[w]||w}</span></div>`).join("");
   $("rRef").textContent=ceilingMode?`Hauteur sous plafond ${S.ceiling} cm (saisie)`:S.refKind==="ar"?`Réalité augmentée, mur à ${S.ar?frn(S.ar.distM,1):"?"} m`:S.refKind==="mire"?"Mire WallScan, 19 × 27,7 cm":`Feuille A4, 21 × 29,7 cm${S.refDetected?"":" (coins tapés)"}`;
   $("rOpen").textContent=S.openings.length?S.openings.map(o=>`${KIND_LBL[o.t]||o.t} ${fq(o.w)} × ${fq(o.h)} cm`).join(", "):"Aucune";
   $("rBb").textContent=!sv.baseboard.enabled?"Sans plinthes":sv.baseboard.heightCm==null?"Hauteur inconnue — non déduite":`${fq(sv.baseboard.heightCm)} cm, ${sv.baseboard.source==="measured"?"mesurés sur la photo":"saisis"}`;
   $("rPaperH").textContent=`${frn(S.h/100)} m${bb?" (plinthe déduite)":""}`;
   $("rPro").textContent=`Incertitude réelle ± ${fq(sv.uncertaintyPct)} % · côtés opposés ${fq(sv.checks.oppositeSidesPct)} % · aspect de la référence ${fq(sv.checks.referenceAspectPct)} % · distorsion ${fq(sv.checks.distortionPct)} %${sv.heightLeftCm!==sv.heightRightCm?` · hauteurs ${fq(sv.heightLeftCm)} / ${fq(sv.heightRightCm)} cm`:""} · ${fq(sv.scalePxPerCm)} px/cm redressés · ${ENGINE_INFO}`;
-  $("validateA").disabled=false;}
+  qualityCards();$("validateA").disabled=false;}
 const wall=()=>({w:S.w,h:S.h,openings:allOpenings(),strip:S.survey?{widthCm:S.survey.widthCm,heightLeftCm:S.survey.heightLeftCm,heightRightCm:S.survey.heightRightCm,openings:allOpenings().map(toV2),baseboard:{enabled:S.survey.baseboard.enabled&&S.survey.baseboard.heightCm!=null,heightCm:S.survey.baseboard.heightCm}}:undefined});
 $("validateA").onclick=()=>{const coarse=matchMedia("(pointer: coarse)").matches,portrait=matchMedia("(orientation: portrait)").matches;if(coarse&&portrait){show("rotate");tryLock();}else show("viz");};
 function tryLock(){try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock("landscape").catch(()=>{});}catch(e){}}

@@ -3,18 +3,32 @@
  * (cadre noir épais à intérieur clair, code d'orientation / identifiant), affinage sous-pixel des 4 coins.
  */
 import type { GrayImage, Pt, Quad, ReferenceKind } from "@wallscan/core";
-import { A4_CM, decodeMireCells, MIRE_LAYOUT, MIRE_OUTER_CM } from "./constants.js";
+import { A4_CM, decodeMireCells, MIRE_LAYOUT, MIRE_OUTER_CM, REFERENCE_AMBIGUITY_RATIO } from "./constants.js";
 import { applyHomography, homographyFromPoints, rectQuad } from "./homography.js";
 import { bilinear, boxMean, integralImage, noiseSigma } from "./image.js";
 import { dist } from "./linalg.js";
 import { findEdgeAlongNormal, innerNormal, refineCornersDetailed } from "./refine.js";
 import { adaptiveMask, connectedComponents, convexHull, polygonArea, quadCenter, quadFromHull, quadSides, type Component } from "./segment.js";
 
+export interface ReferenceCandidate {
+  kind: "mire" | "a4";
+  quad: Quad;
+  /** Score de détection (0–1, même échelle que le meilleur candidat de sa nature). */
+  score: number;
+}
+
 export interface ReferenceDetection {
   kind: "mire" | "a4";
   quad: Quad;
   confidence: number;
   code?: number;
+  /**
+   * Candidats ayant passé tous les filtres, meilleur d'abord (le retenu en premier) : le module peut les proposer à
+   * l'utilisateur quand `ambiguous` est vrai. Absent pour une référence fournie à la main.
+   */
+  candidates?: ReferenceCandidate[];
+  /** Un second candidat de même nature a un score > 70 % du meilleur (`REFERENCE_AMBIGUITY_RATIO`). */
+  ambiguous?: boolean;
 }
 
 export interface ReferenceHint {
@@ -166,6 +180,13 @@ export function decodeMire(img: GrayImage, quad: Quad): { code: number; contrast
   return null;
 }
 
+/** Liste des candidats (triés, meilleur d'abord) et ambiguïté : second score > 70 % du meilleur. */
+function ambiguity(kind: "mire" | "a4", found: ReadonlyArray<{ score: number; quad: Quad }>): { candidates: ReferenceCandidate[]; ambiguous: boolean } {
+  const candidates = found.map((f) => ({ kind, quad: f.quad, score: f.score }));
+  const ambiguous = candidates.length > 1 && candidates[1].score > REFERENCE_AMBIGUITY_RATIO * candidates[0].score;
+  return { candidates, ambiguous };
+}
+
 /**
  * Détecte la référence : mire (prioritaire, validée par son code) puis feuille A4. Retourne les coins affinés en
  * sous-pixel dans l'ordre image (TL, TR, BR, BL), ou `null` (échec signalé, jamais de fausse détection silencieuse).
@@ -204,7 +225,10 @@ export function detectReference(img: GrayImage, hint: ReferenceHint = {}): Refer
     if (best) {
       const sides = quadSides(best.quad);
       const sizeScore = Math.min(1, Math.min(sides.w, sides.h) / 40);
-      return { kind: "mire", quad: best.quad, confidence: Math.min(1, 0.6 + 0.3 * sizeScore + 0.1 * Math.min(1, best.contrast / 150)), code: best.code };
+      return {
+        kind: "mire", quad: best.quad, confidence: Math.min(1, 0.6 + 0.3 * sizeScore + 0.1 * Math.min(1, best.contrast / 150)), code: best.code,
+        ...ambiguity("mire", found),
+      };
     }
   }
 
@@ -245,7 +269,7 @@ export function detectReference(img: GrayImage, hint: ReferenceHint = {}): Refer
       const sides = quadSides(best.quad);
       const sizeScore = Math.min(1, Math.min(sides.w, sides.h) / 40);
       const confidence = Math.min(1, 0.35 + 0.3 * sizeScore + 0.2 * Math.min(1, best.contrast / 60) + 0.15 * (1 - best.aspectErr / 0.14));
-      return { kind: "a4", quad: best.quad, confidence };
+      return { kind: "a4", quad: best.quad, confidence, ...ambiguity("a4", found) };
     }
   }
   return null;

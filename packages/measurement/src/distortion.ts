@@ -1,8 +1,9 @@
 /**
  * Distorsion radiale, modèle de division à un coefficient (Fitzgibbon) :
  *   p_u = c + (p_d − c) / (1 + k1 · r_d²),   r_d = |p_d − c| / R,   R = demi-diagonale de l'image.
- * k1 > 0 : barillet (les bords sont contractés dans l'image distordue). k1 ∈ [−0,02 ; 0,02] couvre les téléphones
- * hors ultra grand-angle (≈ 2 % de déplacement maximal dans les coins).
+ * k1 < 0 : barillet (|p_u − c| = |p_d − c| / (1 + k1·r²) > |p_d − c| : les bords sont contractés dans l'image distordue,
+ * cas des grands-angles et ultra grand-angles) ; k1 > 0 : coussinet. k1 ∈ [−0,02 ; 0,02] couvre les téléphones hors ultra
+ * grand-angle (≈ 2 % de déplacement maximal dans les coins). (Correction du 2026-11-08 : la v1 disait l'inverse.)
  */
 import type { Pt } from "@wallscan/core";
 

@@ -120,3 +120,20 @@ occultation des meubles dans le rendu, les 40 devis de référence Soufflet (sta
   indisponibilité. Vérifié en Chromium headless avec caméra factice : photo 3840 × 2160 capturée, parcours complet, 0 erreur.
 - Dépôt GitHub `chouk13/wallscan` : `main` = monorepo, `gh-pages` = `dist/` du module ; `scripts/deploy-pages.sh` republie.
   URL de test : https://chouk13.github.io/wallscan/ (Pages à activer par le propriétaire ; dépôt public requis sur compte gratuit).
+
+## Addendum 2026-11-08 (soir) — v6 : mesure « ultra optimisée » (équipe de trois agents)
+
+- **Moteur** (`packages/measurement`, 116 tests, 100 %) : `refineWallQuad` — coins = intersections de droites ajustées en sous-pixel sur toute la
+  longueur des arêtes en pleine résolution (coins tapés à ±3 px → 0,06 px en p50 ; erreur max(W,H) p95 0,84 % → 0,05 % sur 120 cas) ;
+  distorsion k1 sur toutes les grandes lignes (erreur k1 p95 ×10⁻³ : 0,92 → 0,37) ; `sharpness` robuste au bruit (400/400 verdicts
+  conformes) ; `fuseQuads` ; `consistency` ; `withQualityWarnings` + codes `measure_implausible`, `reference_ambiguous`,
+  `reference_scale_suspect`, `reference_small`, `image_soft/blurry`, `distortion_strong/extreme`. Coût : +70 à +120 ms (≈ 600 ms p50).
+- **Banc de réalisme** (`pnpm -s bench:realism`, 32 conditions × 20 scènes) : précision tenue jusqu'à 15° de tangage, 8° de roulis,
+  feuille de travers 7°, vignettage ; **4 fausses mesures silencieuses → 0** (fausse feuille = autre rectangle A4 ; désormais 3–4 codes).
+  Seuils de refus adoptés dans `docs/quality-thresholds.md`. Décision lead : `reference_small` informatif, `reference_scale_suspect`
+  avertissement (combles), refus = `REFUSAL_WARNINGS` + `reference_ambiguous`.
+- **Viseur** : consensus sur 5 images, carte « Stable », déclenchement automatique (option mémorisée), rafale de 3 photos (plus nette
+  retenue, coins fusionnés), contrôle de flou avec « Reprendre », réglages caméra prudents, inclinaison enregistrée (> 6° / 4° : carte),
+  recoupement hauteur connue, affinage des coins (initial et après déplacement). Trois passes automatiques vertes.
+- Reste : banc réel 20 murs (seuils de netteté à recaler), banc de réalisme à requalifier en n = 40, temps du pipeline à regagner
+  (coins du mur ≈ 200 ms), scan relief AR à valider sur S24.
