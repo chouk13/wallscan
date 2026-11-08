@@ -788,6 +788,7 @@
   </header>
   <nav class="menutabs" id="menutabs" aria-label="Sections"><button type="button" data-tab="catalog" class="sel">Nos marques</button><button type="button" data-tab="works" id="tabWorksBtn" style="display:none">Réalisations</button><button type="button" data-tab="projects" class="pro-only">Projets</button><button type="button" data-tab="company">Le showroom</button><button type="button" data-tab="rules" class="pro-only">Règles</button></nav>
   <div class="scroll pb"><div class="wrap">
+    <div id="menuPhotoActions" class="block" style="display:none;padding-top:18px"><span class="lbl">Votre mur</span><div class="shootbtns" style="margin-top:8px"><button class="btn block" id="menuRetake" type="button"><svg class="ic"><use href="#i-camera"/></svg>Reprendre la photo →</button><button class="btn block" id="menuBackMeasure" type="button">Revenir à la mesure →</button></div></div>
     <div id="tab-catalog">
       <div class="block" style="padding-top:18px"><span class="lbl">Catalogue</span><h2 class="title">Nos marques.</h2><p class="sub">Neuf maisons, plus de 1 000 échantillons au showroom. Prix indicatifs, hors pose.</p></div>
       <label class="search"><svg class="ic"><use href="#i-search"/></svg><input type="search" id="search" placeholder="Rechercher une référence" aria-label="Rechercher dans le catalogue"></label>
@@ -936,10 +937,10 @@ const fmtDims=p=>isPano(p)?`Lés de ${p.w} cm, hauteur sur mesure`:`${p.w} cm ×
 const fmtMatch=p=>isPano(p)?"Décor panoramique":p.rep?"Raccord "+p.rep+" cm"+(p.match==="half_drop"?", sauté":""):"Sans raccord";
 const priceM2=p=>isPano(p)?p.price:Math.round(p.price/((p.w/100)*(p.l/100)));
 function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");window.scrollTo(0,0);if(id!=="viz")$(id).querySelectorAll(".scroll").forEach(el=>{el.scrollTop=0;});if(id==="analyze")setTimeout(()=>{layoutA();layoutRectOps();},30);if(id==="viz")setTimeout(renderViz,30);if(id==="shoot"||id==="camera")startLevel();else stopLevel();
-  if(id==="home")startHomePreview();else if(id!=="camera")stopCamera();if(id==="viz"&&!IMM)setImmersive(true);else if(id!=="viz"&&IMM)setImmersive(false);}
+  if(id==="home")startHomePreview();else if(id!=="camera")stopCamera();if(id==="viz"&&!IMM)setImmersive(true);else if(id!=="viz"&&IMM)setImmersive(false);if(id==="menu")$("menuPhotoActions").style.display=S.img&&!S.demo?"":"none";}
 $("toMenu").onclick=()=>show("menu");["fabHome","fabA","fabQ","fabP","fabR","menuTop"].forEach(id=>$(id).onclick=()=>show("menu"));$("fabM").onclick=()=>show("home");$("menuCam").onclick=()=>show("home");
 $("toPrepare").onclick=()=>show("prepare");$("prepBack").onclick=()=>show("home");$("toShoot").onclick=()=>openCamera();$("shootBack").onclick=()=>show("prepare");$("backShoot").onclick=()=>{if(camOK())openCamera();else show("shoot");};$("backVerify").onclick=()=>show("analyze");$("toResult").onclick=()=>{updateResult();show("result");};$("backA").onclick=()=>show("result");$("backV").onclick=()=>show("viz");
-function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove("show"),1900);}
+function toast(m,ms){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove("show"),ms||1900);}
 
 // ============================================================ PRÉPARER : référence d'échelle (feuille A4, mire, hauteur sous plafond en secours)
 function setRefChoice(v){S.refChoice=v;$("refChoice").querySelectorAll("label").forEach(l=>l.classList.toggle("sel",l.querySelector("input").value===v));$("refChoice").querySelector(`input[value="${v}"]`).checked=true;}
@@ -1031,6 +1032,7 @@ async function capturePhoto(){const btn=$("shutter");if(btn.classList.contains("
   const burst={count:frames.length,mode,shotMs:Math.round(shotMs),dtMs:dts.map(Math.round),scores:frames.map(f=>Math.round(f.sharp.score*10)/10),verdicts:frames.map(f=>f.sharp.verdict),chosen:best,fuse:null};
   S.liveHint=LIVE.last?{...LIVE.last}:null;btn.classList.remove("busy");stopCamera();stopLevel();loadPhoto(src,null,{burst,pose,sharp:{...keep.sharp,count:frames.length},grays});}
 $("shutter").onclick=capturePhoto;$("camBack").onclick=()=>show("prepare");
+$("menuRetake").onclick=()=>{if(camOK())openCamera();else show("shoot");};$("menuBackMeasure").onclick=()=>show("analyze");
 
 // ============================================================ SCAN RELIEF — WebXR (Chrome Android + ARCore). La carte de profondeur donne le plan du
 // mur (RANSAC sur les points 3D), tout ce qui s'écarte du plan de plus de 3 cm est un relief (poutre, pilier, radiateur, meuble) ou un
@@ -1443,12 +1445,13 @@ function rectifyView(){const sv=S.survey,c=$("rectCanvas");if(!sv||!(sv.widthCm>
   const R=WSMeasure.warpToPlane(S.planes.r,Hpx,outW,outH),G=WSMeasure.warpToPlane(S.planes.g,Hpx,outW,outH),B=WSMeasure.warpToPlane(S.planes.b,Hpx,outW,outH);
   c.width=outW;c.height=outH;const x=c.getContext("2d");const id=x.createImageData(outW,outH),d=id.data,n=outW*outH;const gray=new Uint8ClampedArray(n);
   for(let i=0,j=0;i<n;i++,j+=4){d[j]=R.data[i];d[j+1]=G.data[i];d[j+2]=B.data[i];d[j+3]=255;gray[i]=(R.data[i]*299+G.data[i]*587+B.data[i]*114+500)/1000;}
-  x.putImageData(id,0,0);S.rect={w:outW,h:outH,s};
+  x.putImageData(id,0,0);S.rect={w:outW,h:outH,s};S.rectGray={width:outW,height:outH,data:gray};
   if(!S.opProposed){const rectG={width:outW,height:outH,data:gray};const props=WSMeasure.proposeOpenings(rectG,s,sv)||[];S.openings=props.map(fromV2);
     // Décrochements au plafond (poutre, retombée) : proposés comme zones exclues à confirmer — profondeur 8 à 45 % de la hauteur, portée ≥ 25 % de la largeur
     if(!S.survey.heightIncomplete&&!S.survey.heightCompleted){const notches=WSMeasure.proposeCeilingNotches(rectG,{minDepthPx:Math.max(6,8*s),maxDepthPx:Math.round(outH*0.45),minSpanPx:Math.round(outW*0.25),maxGapPx:Math.round(5*s)})||[];
       notches.filter(nz=>nz.confidence>=0.55).forEach((nz,i)=>S.openings.push({id:"beam"+i,t:"excluded",x:Math.round(nz.x/s*10)/10,y:0,w:Math.round(nz.w/s*10)/10,h:Math.round(nz.h/s*10)/10,conf:nz.confidence,src:"auto",note:"Poutre ou retombée au plafond ? À confirmer."}));}
     if(S.ar&&S.ar.cells){S.openings.push(...arReliefZones(sv));}
+    S.openings.forEach(o=>{if(o.src==="auto")snapOpening(o,"both");}); // aimantation des propositions sur les arêtes réelles
     S.opProposed=true;S.survey.openings=S.openings.map(toV2);renderOpenings();refreshStatus();}
   layoutRectOps();}
 // Ouvertures sur la vue de face : rectangles déplaçables (corps) et redimensionnables (poignées haut-gauche / bas-droite), ajout en deux taps
@@ -1466,7 +1469,22 @@ window.addEventListener("pointermove",e=>{if(!opDrag)return;const sv=S.survey,o=
   else if(opDrag.c==="tl"){const nx=clamp(b.x+dx,0,b.x+b.w-5),ny=clamp(b.y+dy,0,b.y+b.h-5);o.w=b.x+b.w-nx;o.h=b.y+b.h-ny;o.x=nx;o.y=ny;}
   else{o.w=clamp(b.w+dx,5,sv.widthCm-b.x);o.h=clamp(b.h+dy,5,sv.heightCm-b.y);}
   o.x=r1(o.x);o.y=r1(o.y);o.w=r1(o.w);o.h=r1(o.h);o.src="user";layoutRectOps();});
-window.addEventListener("pointerup",()=>{if(!opDrag)return;opDrag=null;openingsChanged();});
+window.addEventListener("pointerup",()=>{if(!opDrag)return;const d=opDrag;opDrag=null;if(d.c!=="move"){const o=S.openings[d.i];if(o&&snapOpening(o,d.c)){toast("Coin aimanté sur l'arête",900);}}openingsChanged();});
+// ---------- Aimantation : chaque coin d'un rectangle (ouverture, zone exclue) accroche l'arête la plus marquée à moins de 2 % de la largeur
+// du mur, sur la vue de face redressée. x et y sont aimantés séparément (arête verticale / horizontale), en intégrant le gradient le long du côté.
+function snapEdgeX(g,x0,y0,y1,r){const W=g.width,d=g.data;let best=null,bestS=0,sum=0,cnt=0;const ya=Math.max(1,Math.round(y0)),yb=Math.min(g.height-2,Math.round(y1));if(yb-ya<4)return null;
+  for(let x=Math.max(1,Math.round(x0-r));x<=Math.min(W-2,Math.round(x0+r));x++){let sc=0;for(let y=ya;y<=yb;y+=2){const i=y*W+x;sc+=Math.abs(d[i+1]-d[i-1]);}sum+=sc;cnt++;if(sc>bestS){bestS=sc;best=x;}}
+  return cnt&&bestS>2.2*(sum/cnt)?best:null;}
+function snapEdgeY(g,y0,x0,x1,r){const W=g.width,d=g.data;let best=null,bestS=0,sum=0,cnt=0;const xa=Math.max(1,Math.round(x0)),xb=Math.min(W-2,Math.round(x1));if(xb-xa<4)return null;
+  for(let y=Math.max(1,Math.round(y0-r));y<=Math.min(g.height-2,Math.round(y0+r));y++){let sc=0;for(let x=xa;x<=xb;x+=2){const i=y*W+x;sc+=Math.abs(d[i+W]-d[i-W]);}sum+=sc;cnt++;if(sc>bestS){bestS=sc;best=y;}}
+  return cnt&&bestS>2.2*(sum/cnt)?best:null;}
+function snapOpening(o,which){const g=S.rectGray,sv=S.survey;if(!g||!sv||!S.rect)return false;const s=S.rect.s;const r=Math.max(4,Math.round(sv.widthCm*0.02*s));let moved=false;
+  const px=v=>v*s,cm=v=>Math.round(v/s*10)/10;const x0=px(o.x),y0=px(o.y),x1=px(o.x+o.w),y1=px(o.y+o.h);const inset=Math.min(12,(x1-x0)*0.15,(y1-y0)*0.15);
+  if(which==="tl"||which==="both"){const nx=snapEdgeX(g,x0,y0+inset,y1-inset,r),ny=snapEdgeY(g,y0,x0+inset,x1-inset,r);
+    if(nx!=null&&cm(nx)<o.x+o.w-5){o.w=r1(o.x+o.w-cm(nx));o.x=cm(nx);moved=true;}if(ny!=null&&cm(ny)<o.y+o.h-5){o.h=r1(o.y+o.h-cm(ny));o.y=cm(ny);moved=true;}}
+  if(which==="br"||which==="both"){const X1=px(o.x+o.w),Y1=px(o.y+o.h);const nx=snapEdgeX(g,X1,px(o.y)+inset,Y1-inset,r),ny=snapEdgeY(g,Y1,px(o.x)+inset,X1-inset,r);
+    if(nx!=null&&cm(nx)>o.x+5){o.w=r1(cm(nx)-o.x);moved=true;}if(ny!=null&&cm(ny)>o.y+5){o.h=r1(cm(ny)-o.y);moved=true;}}
+  return moved;}
 function openingsChanged(){if(S.survey)S.survey.openings=S.openings.map(toV2);renderOpenings();layoutRectOps();refreshStatus();}
 $("addOpening").onclick=()=>{if(!S.rect){S.openings.push({id:"u"+Date.now(),t:"window",x:50,y:20,w:120,h:140,conf:1,src:"user"});openingsChanged();toast("Ouverture ajoutée : ajustez ses cotes");return;}adding=null;rectBox.classList.toggle("adding");layoutRectOps();if(rectBox.classList.contains("adding"))rectBox.scrollIntoView({block:"center",behavior:"smooth"});};
 function renderOpenings(){const box=$("openings");box.innerHTML="";S.openings.forEach((o,i)=>{const d=document.createElement("div");d.className="opening";d.innerHTML=`<label class="field">Type<select data-i="${i}" data-k="t">${Object.entries(KIND_LBL).filter(([k])=>k!=="niche"||o.t==="niche").map(([k,v])=>`<option value="${k}"${o.t===k?" selected":""}>${v}</option>`).join("")}</select></label><label class="field">Largeur<input type="number" inputmode="numeric" data-i="${i}" data-k="w" value="${o.w}"></label><label class="field">Hauteur<input type="number" inputmode="numeric" data-i="${i}" data-k="h" value="${o.h}"></label><button class="iconbtn" type="button" data-del="${i}" aria-label="Supprimer cette ouverture">${ICON("close")}</button>`;if(o.note)d.insertAdjacentHTML("beforeend",`<p class="foot opnote">${o.note}</p>`);box.appendChild(d);});
