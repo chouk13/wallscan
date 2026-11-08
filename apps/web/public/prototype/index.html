@@ -214,6 +214,13 @@
   .handle.ref.c2::before{left:50%;top:50%;border-bottom-width:2px;border-right-width:2px}
   .handle.ref.c3::before{right:50%;top:50%;border-bottom-width:2px;border-left-width:2px}
   .stage.m-ref .handle:not(.ref),.stage.m-wall .handle.ref,.stage.m-baseboard .handle,.stage.m-none .handle{display:none}
+  .stage .handle.out,.stage .handle.mid{display:none}
+  .stage.m-outline .handle:not(.out):not(.mid){display:none}.stage.m-outline .handle.out{display:block;background:var(--gold);border-color:var(--char)}
+  .stage.m-outline .handle.mid{display:flex;align-items:center;justify-content:center;width:28px;height:28px;margin:-14px 0 0 -14px;background:rgba(26,22,20,.72);border:1.5px dashed var(--paper);color:var(--paper);font-size:18px;line-height:1;cursor:copy}
+  .stage.m-outline #polyA{opacity:.35}
+  #outPoly{fill:rgba(201,168,122,.14);stroke:var(--gold);stroke-width:2;stroke-dasharray:7 5}
+  .stage.m-outline #outPoly{stroke-dasharray:none}
+  .rectOps .op.k-excluded.out{border-style:dashed;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(201,168,122,.35) 0 6px,transparent 6px 12px)}
   .stage.m-ref #polyA,.stage.m-baseboard #polyA{opacity:.45}
   .stage.m-wall #refPoly,.stage.m-baseboard #refPoly{opacity:.55}
   #polyA{fill:rgba(244,239,230,.12);stroke:#F4EFE6;stroke-width:1.5}
@@ -599,7 +606,7 @@
   <div class="scroll pb">
     <div class="frame">
       <div class="stage m-none" id="stageA"><img class="photo" id="imgA" alt="">
-        <svg class="ov"><polygon id="polyA"/><polygon id="refPoly" style="display:none"/><line id="bbLine" style="display:none"/><g class="placing" id="placing"></g></svg>
+        <svg class="ov"><polygon id="polyA"/><polygon id="outPoly" style="display:none"/><polygon id="refPoly" style="display:none"/><line id="bbLine" style="display:none"/><g class="placing" id="placing"></g></svg>
         <div class="scan" id="scan"><div class="line"></div><div class="lbl">Analyse du mur</div></div>
       </div>
     </div>
@@ -608,11 +615,12 @@
       <span class="lbl">Étape 2 · Mesure</span>
       <h1 class="title sm">Vérifier la mesure.</h1>
       <div class="seg modes" id="stageModes" role="group" aria-label="Ce que vous ajustez sur la photo">
-        <button type="button" data-mode="ref" class="sel" id="modeRef">Feuille</button><button type="button" data-mode="wall">Coins du mur</button><button type="button" data-mode="baseboard" id="modeBb" disabled>Plinthe</button>
+        <button type="button" data-mode="ref" class="sel" id="modeRef">Feuille</button><button type="button" data-mode="wall">Coins du mur</button><button type="button" data-mode="outline" id="modeOut">Contour</button><button type="button" data-mode="baseboard" id="modeBb" disabled>Plinthe</button>
       </div>
       <div id="refStatus" class="conf wait tight"><svg class="ic"><use href="#i-scan"/></svg><span>En attente d'une photo</span></div>
       <div id="ceilVerify" class="fields" style="display:none"><label class="field">Hauteur sous plafond (cm)<input id="ceilInput2" type="number" inputmode="numeric" min="150" max="600" value="250"></label></div>
       <div id="wallStatus" class="conf wait tight"><svg class="ic"><use href="#i-scan"/></svg><span>Coins du mur</span></div>
+      <div id="outStatus" class="conf tight" style="display:none"></div>
       <div id="compBlock" class="fields" style="display:none"><label class="field"><span id="compLabel">Hauteur du mur, sol → plafond (cm)</span><input id="compHeight" type="number" inputmode="numeric" min="100" max="600" placeholder="ex. 250"></label><p class="foot" id="compFoot"></p></div>
       <span class="lbl h3">Vue de face · Ouvertures</span>
       <div class="rectbox" id="rectBox"><canvas id="rectCanvas" width="16" height="9"></canvas><div id="rectOps"></div><div class="rectHint" id="rectHint">Touchez deux coins opposés de l'ouverture</div></div>
@@ -675,7 +683,7 @@
 <section id="viz" class="screen atelier">
   <div class="vizstage" id="vizstage">
     <div class="backdrop" id="vizBack" aria-hidden="true"></div>
-    <div class="fit" id="fit"><img class="photo" id="imgV" alt=""><div class="layer" id="paper"></div><img class="layer" id="light" alt=""><div class="layer" id="strips"></div><div class="layer" id="cutouts"></div></div>
+    <div class="fit" id="fit"><img class="photo" id="imgV" alt=""><div class="layer" id="paperClip" style="width:100%;height:100%"><div class="layer" id="paper"></div><img class="layer" id="light" alt=""><div class="layer" id="strips"></div></div><div class="layer" id="cutouts"></div></div>
     <div class="vizinfo"><span class="lbl">Étape 3 · Rendu</span><span id="vizName">–</span><span class="meta"><span id="vizRolls">–</span><span id="vizPrice">–</span></span></div>
     <button class="closex float embed-only" type="button" aria-label="Fermer"><svg class="ic"><use href="#i-close"/></svg></button>
     <div class="vizbtns">
@@ -1028,7 +1036,7 @@ function orderQuad(pts){const cx=pts.reduce((s,p)=>s+p[0],0)/4,cy=pts.reduce((s,
 function loadPhoto(src,preset){const im=new Image();im.onload=()=>{const m=2048,k=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,c.width,c.height);
   const d=x.getImageData(0,0,c.width,c.height).data,n=c.width*c.height;const R=new Uint8ClampedArray(n),G=new Uint8ClampedArray(n),B=new Uint8ClampedArray(n);for(let i=0,j=0;i<n;i++,j+=4){R[i]=d[j];G[i]=d[j+1];B[i]=d[j+2];}
   S.orig=im;S.img={src:k<1?c.toDataURL("image/jpeg",.9):src,w:c.width,h:c.height};S.planes={r:{width:c.width,height:c.height,data:R},g:{width:c.width,height:c.height,data:G},b:{width:c.width,height:c.height,data:B}};S.gray=WSMeasure.toGray(d,c.width,c.height);
-  Object.assign(S,{preset:preset||null,quad:null,refQuad:null,refDetected:false,refConf:0,k1:0,lines:null,survey:null,rect:null,plan:null,openings:[],opProposed:false,bb:{enabled:false,heightCm:null,source:null,pt:null,unc:0},w:0,h:0,hFull:0,number:null,sent:false,corrected:false,placing:[],wallProposed:false,wallFromLive:false,wallPartial:null,compHeight:null,visibleHeightCm:0,demo:!!preset,stageMode:"none"});
+  Object.assign(S,{preset:preset||null,quad:null,refQuad:null,refDetected:false,refConf:0,k1:0,lines:null,survey:null,rect:null,plan:null,openings:[],opProposed:false,bb:{enabled:false,heightCm:null,source:null,pt:null,unc:0},w:0,h:0,hFull:0,number:null,sent:false,corrected:false,placing:[],wallProposed:false,wallFromLive:false,wallPartial:null,compHeight:null,visibleHeightCm:0,outlineCm:null,outlineZones:[],demo:!!preset,stageMode:"none"});
   opSel=null;adding=null;$("rectBox").classList.remove("adding");$("imgA").src=S.img.src;$("imgV").src=S.img.src;$("light").src=S.img.src;$("bbSeg").querySelectorAll("button").forEach(b=>b.classList.toggle("sel",b.dataset.bb==="0"));$("bbBox").style.display="none";$("modeBb").disabled=true;$("bbInput").value="";renderOpenings();
   show("analyze");startAnalysis();};im.src=src;}
 // Mur de démo : scène plane (418 × 250 cm à 3 px/cm — feuille A4 au milieu à hauteur des yeux, fenêtre 120 × 140 à 95 cm du sol,
@@ -1083,25 +1091,52 @@ function startAnalysis(){$("scan").classList.add("on");$("validateA").disabled=t
     $("scan").classList.remove("on");setStageMode(S.refChoice==="ceiling"?"wall":S.refQuad?"wall":"ref");computeMeasure();rectifyView();
     const rn=S.refKind==="mire"?"Mire":"Feuille";toast(S.demo?"Mur de démo : feuille et coins pré-remplis":S.refQuad?(S.wallProposed?`${rn} détectée, coins proposés : vérifiez-les`:S.wallPartial&&S.wallPartial.any?`${rn} détectée · mur incomplet sur la photo, voir ci-dessous`:`${rn} détectée : placez les 4 coins du mur`):S.refChoice==="ceiling"?"Placez les 4 coins du mur":S.refChoice==="mire"?"Tapez les 4 coins de la mire":"Tapez les 4 coins de la feuille");},1500);}
 function setStageMode(m){S.stageMode=m;stageA.className="stage m-"+m+(m==="ref"&&!S.refQuad?" placing":"");$("stageModes").querySelectorAll("button").forEach(b=>b.classList.toggle("sel",b.dataset.mode===m));layoutA();}
-$("stageModes").querySelectorAll("button").forEach(b=>b.onclick=()=>{if(b.disabled)return;setStageMode(b.dataset.mode);if(b.dataset.mode==="baseboard")stageA.scrollIntoView({block:"center",behavior:"smooth"});});
+$("stageModes").querySelectorAll("button").forEach(b=>b.onclick=()=>{if(b.disabled)return;if(b.dataset.mode==="outline"&&!startOutline()){toast("Placez d'abord la référence et les coins du mur");return;}setStageMode(b.dataset.mode);refreshStatus();if(b.dataset.mode==="baseboard")stageA.scrollIntoView({block:"center",behavior:"smooth"});});
 function layoutA(){if(!S.img)return;const W=stageA.clientWidth,Hh=stageA.clientHeight;if(!W)return;const P=q=>q.map(p=>`${p[0]*W},${p[1]*Hh}`).join(" ");
   if(S.quad){$("polyA").setAttribute("points",P(S.quad));$("polyA").style.display="";S.quad.forEach((q,i)=>{H[i].style.left=q[0]*W+"px";H[i].style.top=q[1]*Hh+"px";});}else $("polyA").style.display="none";
   const rp=$("refPoly");const hasRef=!!(S.refQuad&&S.refChoice!=="ceiling");RH.forEach(h=>h.style.display=hasRef?"":"none");
   if(hasRef){rp.setAttribute("points",P(S.refQuad));rp.style.display="";rp.classList.toggle("manual",!S.refDetected);S.refQuad.forEach((q,i)=>{RH[i].style.left=q[0]*W+"px";RH[i].style.top=q[1]*Hh+"px";});}else rp.style.display="none";
-  H.forEach(h=>h.style.display=S.quad?"":"none");
+  H.forEach(h=>h.style.display=S.quad?"":"none");layoutOutline(W,Hh);
   $("placing").innerHTML=S.placing.map((p,i)=>`<circle cx="${p[0]*W}" cy="${p[1]*Hh}" r="7"/><path d="M${p[0]*W-12} ${p[1]*Hh}h24M${p[0]*W} ${p[1]*Hh-12}v24"/><text x="${p[0]*W+10}" y="${p[1]*Hh-10}">${i+1}</text>`).join("");
   const bl=$("bbLine");if(S.survey&&S.bb.enabled&&S.bb.heightCm!=null&&S.survey.heightCm>0){const inv=invH(S.survey.homography);const yc=S.survey.heightCm-S.bb.heightCm;const a=apply(inv,0,yc),b=apply(inv,S.survey.widthCm,yc);bl.setAttribute("x1",a[0]/S.img.w*W);bl.setAttribute("y1",a[1]/S.img.h*Hh);bl.setAttribute("x2",b[0]/S.img.w*W);bl.setAttribute("y2",b[1]/S.img.h*Hh);bl.style.display="";}else bl.style.display="none";}
+// ---------- Contour : polygone à N sommets dans le plan du mur (cm), poutre, pan coupé, décrochement. Les 4 coins restent la référence du plan.
+let lastOutTap=null;const OH=[];
+const imgToCm=p=>{const sv=S.survey;if(!sv||!sv.homography)return null;const c=apply(sv.homography,p[0]*S.img.w,p[1]*S.img.h);return[clamp(c[0],-5,sv.widthCm+5),clamp(c[1],-5,sv.heightCm+5)];};
+const cmToImg=c=>{const sv=S.survey;const inv=invH(sv.homography);const q=apply(inv,c[0],c[1]);return[q[0]/S.img.w,q[1]/S.img.h];};
+function outlineImg(){if(!S.outlineCm||!S.survey)return S.quad||[];return S.outlineCm.map(cmToImg);}
+function startOutline(){if(!S.survey||!(S.survey.widthCm>0))return false;if(!S.outlineCm){const W=S.survey.widthCm,Hh=S.survey.heightCm;S.outlineCm=[[0,0],[W,0],[W,Hh],[0,Hh]];}return true;}
+function resetOutline(){S.outlineCm=null;S.outlineZones=[];computeMeasure();rectifyView();}
+function layoutOutline(W,Hh){const poly=$("outPoly");const on=!!S.outlineCm&&!!S.survey;const q=on?outlineImg():[];
+  while(OH.length<q.length*2){const i=OH.length>>1;const isMid=OH.length%2===1;const d=document.createElement("div");d.className="handle "+(isMid?"mid":"out");d.dataset.a=isMid?"mid":"out";d.dataset.i=i;if(isMid)d.textContent="+";stageA.appendChild(d);OH.push(d);}
+  OH.forEach((d,k)=>{const i=k>>1,isMid=k%2===1;if(i>=q.length){d.style.display="none";d.classList.add("off");return;}d.classList.remove("off");d.style.display="";const a=q[i],b=q[(i+1)%q.length];const p=isMid?[(a[0]+b[0])/2,(a[1]+b[1])/2]:a;d.style.left=p[0]*W+"px";d.style.top=p[1]*Hh+"px";});
+  if(on){poly.setAttribute("points",q.map(p=>`${p[0]*W},${p[1]*Hh}`).join(" "));poly.style.display="";}else poly.style.display="none";}
+// Zones hors contour = complément du polygone dans le rectangle du mur, découpé en bandes verticales (exact pour une poutre ou un pan coupé à angles droits).
+function outlineZones(sv){if(!S.outlineCm||!(sv.widthCm>0&&sv.heightCm>0))return[];const W=sv.widthCm,Hh=sv.heightCm,P=S.outlineCm;const n=P.length;
+  const xs=[...new Set([0,W,...P.map(p=>clamp(Math.round(p[0]*10)/10,0,W))])].sort((a,b)=>a-b);const bands=[];
+  for(let k=0;k<xs.length-1;k++){const x0=xs[k],x1=xs[k+1];if(x1-x0<0.5)continue;const xm=(x0+x1)/2;const ys=[];
+    for(let i=0;i<n;i++){const a=P[i],b=P[(i+1)%n];if((a[0]<=xm)!==(b[0]<=xm)){const t=(xm-a[0])/(b[0]-a[0]);ys.push(a[1]+t*(b[1]-a[1]));}}
+    ys.sort((a,b)=>a-b);const inside=[];for(let i=0;i+1<ys.length;i+=2)inside.push([clamp(ys[i],0,Hh),clamp(ys[i+1],0,Hh)]);
+    const comp=[];let y=0;for(const [y0,y1] of inside){if(y0-y>0.5)comp.push([y,y0]);y=Math.max(y,y1);}if(Hh-y>0.5)comp.push([y,Hh]);
+    bands.push({x0,x1,comp});}
+  // fusion des bandes voisines au complément identique
+  const zones=[];for(const b of bands){const prev=zones.length?zones[zones.length-1]:null;const key=b.comp.map(c=>c.map(v=>Math.round(v*2)/2).join(":")).join("|");
+    if(prev&&prev.key===key&&Math.abs(prev.x1-b.x0)<0.01)prev.x1=b.x1;else zones.push({x0:b.x0,x1:b.x1,comp:b.comp,key});}
+  const out=[];zones.forEach((z,zi)=>z.comp.forEach(([y0,y1],ci)=>{const w=Math.round((z.x1-z.x0)*10)/10,h=Math.round((y1-y0)*10)/10;if(w>=1&&h>=1)out.push({id:`out-${zi}-${ci}`,t:"excluded",x:Math.round(z.x0*10)/10,y:Math.round(y0*10)/10,w,h,conf:1,src:"outline"});}));return out;}
+const allOpenings=()=>S.openings.concat(S.outlineZones||[]);
 let drag=null;function ptr(e){const r=stageA.getBoundingClientRect();return[clamp((e.clientX-r.left)/r.width,0,1),clamp((e.clientY-r.top)/r.height,0,1)];}
 stageA.addEventListener("pointerdown",e=>{if(!S.img||$("scan").classList.contains("on"))return;const t=e.target.closest(".handle");const p=ptr(e);
-  if(t&&getComputedStyle(t).display!=="none"){const a=t.dataset.a,i=+t.dataset.i;drag={a,i,off:[S[a][i][0]-p[0],S[a][i][1]-p[1]],p:S[a][i].slice()};}
+  if(t&&getComputedStyle(t).display!=="none"&&t.dataset.a==="out"){const i=+t.dataset.i;const q=outlineImg();drag={a:"out",i,off:[q[i][0]-p[0],q[i][1]-p[1]],p:q[i].slice(),moved:false,t0:Date.now()};}
+  else if(t&&getComputedStyle(t).display!=="none"&&t.dataset.a==="mid"){const i=+t.dataset.i;const q=outlineImg();const a=q[i],b=q[(i+1)%q.length];const m=[(a[0]+b[0])/2,(a[1]+b[1])/2];const cm=imgToCm(m);if(cm){S.outlineCm.splice(i+1,0,cm);drag={a:"out",i:i+1,off:[0,0],p:m,moved:true,t0:Date.now()};layoutA();}}
+  else if(t&&getComputedStyle(t).display!=="none"){const a=t.dataset.a,i=+t.dataset.i;drag={a,i,off:[S[a][i][0]-p[0],S[a][i][1]-p[1]],p:S[a][i].slice()};}
   else if(S.stageMode==="ref"&&!S.refQuad&&S.refChoice!=="ceiling")drag={a:"place",p,off:[0,0]};
   else if(S.stageMode==="baseboard")drag={a:"bb",p,off:[0,0]};
   else return;
   e.preventDefault();loupe(drag.p,e);});
-window.addEventListener("pointermove",e=>{if(!drag)return;const q=ptr(e);const p=[clamp(q[0]+drag.off[0],0,1),clamp(q[1]+drag.off[1],0,1)];drag.p=p;if(drag.a==="quad"||drag.a==="refQuad"){S[drag.a][drag.i]=p;layoutA();computeMeasure(true);}loupe(p,e);});
+window.addEventListener("pointermove",e=>{if(!drag)return;const q=ptr(e);const p=[clamp(q[0]+drag.off[0],0,1),clamp(q[1]+drag.off[1],0,1)];drag.p=p;if(drag.a==="quad"||drag.a==="refQuad"){S[drag.a][drag.i]=p;layoutA();computeMeasure(true);}else if(drag.a==="out"){if(Math.hypot(p[0]-(drag.start||p)[0],p[1]-(drag.start||p)[1])>0.004)drag.moved=true;drag.start=drag.start||p;const cm=imgToCm(p);if(cm){S.outlineCm[drag.i]=cm;layoutA();}}loupe(p,e);});
 window.addEventListener("pointerup",()=>{if(!drag)return;const d=drag;drag=null;$("loupe").style.display="none";const p=d.p;
   if(d.a==="place"){S.placing.push(p);if(S.placing.length===4){S.refQuad=orderQuad(S.placing).map(q=>toNorm(WSMeasure.snapToEdge(S.gray,toPx1(q),12)));S.placing=[];S.refDetected=false;S.refKind="manual_a4";S.refConf=0;setStageMode("ref");computeMeasure();rectifyView();toast("Feuille placée : ajustez ses coins si besoin, puis les coins du mur");}else layoutA();refreshStatus();}
   else if(d.a==="bb"){S.bb.pt=p;measureBb();}
+  else if(d.a==="out"){const now=Date.now();if(!d.moved&&S.outlineCm.length>4&&lastOutTap&&lastOutTap.i===d.i&&now-lastOutTap.t<450){S.outlineCm.splice(d.i,1);lastOutTap=null;toast("Point retiré");}else{lastOutTap={i:d.i,t:now};const sn=WSMeasure.snapToEdge(S.gray,toPx1(p),10);const cm=imgToCm(toNorm(sn));if(cm&&d.moved)S.outlineCm[d.i]=cm;}computeMeasure();rectifyView();}
   else{const sn=WSMeasure.snapToEdge(S.gray,toPx1(p),12);S[d.a][d.i]=toNorm(sn);if(d.a==="quad")S.corrected=true;layoutA();computeMeasure();rectifyView();}});
 window.addEventListener("resize",()=>{layoutA();layoutRectOps();renderViz();});
 // Loupe ×3 : 120 × 120 px suivant le doigt, zone de l'image originale agrandie trois fois par rapport à l'écran, réticule
@@ -1113,7 +1148,7 @@ function loupe(p,e){const c=$("loupe"),x=c.getContext("2d");const src=S.orig||$(
 function computeMeasure(light){if(!S.img||!S.quad){refreshStatus();return;}const imageSize={w:S.img.w,h:S.img.h};const wallQuad=toPx(S.quad);let refQuad,refSize,refKind;
   if(S.refChoice==="ceiling"){refQuad=wallQuad;refSize={w:S.ceiling*quadAspect(wallQuad,imageSize.w,imageSize.h),h:S.ceiling};refKind="manual_a4";}
   else{if(!S.refQuad){S.survey=null;refreshStatus();return;}refQuad=toPx(S.refQuad);refSize=S.refChoice==="mire"?{w:19,h:27.7}:{w:21,h:29.7};refKind=S.refDetected?S.refKind:"manual_a4";}
-  let sv=WSMeasure.rectify({wallQuad,refQuad,refSizeCm:refSize,refKind,k1:S.k1,imageSize});sv.openings=S.openings.map(toV2);
+  let sv=WSMeasure.rectify({wallQuad,refQuad,refSizeCm:refSize,refKind,k1:S.k1,imageSize});S.outlineZones=outlineZones(sv);sv.openings=allOpenings().map(toV2);
   // Mur incomplet sur la photo (plafond ou sol hors cadre) et coins non corrigés : la largeur est mesurée, la hauteur visible est un
   // minimum ; la hauteur complète vient de la saisie (sol → plafond). Les ouvertures sont repositionnées depuis le sol.
   S.visibleHeightCm=0;const topMissing=!!(S.wallPartial&&S.wallPartial.any&&!S.wallPartial.ceiling&&!S.corrected),botMissing=!!(S.wallPartial&&S.wallPartial.any&&!S.wallPartial.floor&&!S.corrected);
@@ -1135,7 +1170,7 @@ function rectifyView(){const sv=S.survey,c=$("rectCanvas");if(!sv||!(sv.widthCm>
 const rectBox=$("rectBox");let opSel=null,adding=null,opDrag=null;
 function layoutRectOps(){const box=$("rectOps");const sv=S.survey;if(!sv||!S.rect){box.innerHTML="";return;}
   const bw=rectBox.clientWidth||320;const SHORT={window:"F",door:"P",french_door:"PF",radiator:"R",niche:"N",excluded:"Z"};
-  box.innerHTML=S.openings.map((o,i)=>`<div class="op k-${o.t}${i===opSel?" sel":""}" data-i="${i}" style="left:${o.x/sv.widthCm*100}%;top:${o.y/sv.heightCm*100}%;width:${o.w/sv.widthCm*100}%;height:${o.h/sv.heightCm*100}%"><span class="t">${o.w/sv.widthCm*bw>=(KIND_LBL[o.t]||o.t).length*9+20?(KIND_LBL[o.t]||o.t):(SHORT[o.t]||"?")}</span><i class="oph tl" data-c="tl"></i><i class="oph br" data-c="br"></i></div>`).join("")+(adding?`<i class="addmark" style="left:${adding[0]*100}%;top:${adding[1]*100}%"></i>`:"");}
+  box.innerHTML=S.openings.map((o,i)=>`<div class="op k-${o.t}${i===opSel?" sel":""}" data-i="${i}" style="left:${o.x/sv.widthCm*100}%;top:${o.y/sv.heightCm*100}%;width:${o.w/sv.widthCm*100}%;height:${o.h/sv.heightCm*100}%"><span class="t">${o.w/sv.widthCm*bw>=(KIND_LBL[o.t]||o.t).length*9+20?(KIND_LBL[o.t]||o.t):(SHORT[o.t]||"?")}</span><i class="oph tl" data-c="tl"></i><i class="oph br" data-c="br"></i></div>`).join("")+S.outlineZones.map(o=>`<div class="op k-excluded out" style="left:${o.x/sv.widthCm*100}%;top:${o.y/sv.heightCm*100}%;width:${o.w/sv.widthCm*100}%;height:${o.h/sv.heightCm*100}%"><span class="t">Hors contour</span></div>`).join("")+(adding?`<i class="addmark" style="left:${adding[0]*100}%;top:${adding[1]*100}%"></i>`:"");}
 function rptr(e){const r=rectBox.getBoundingClientRect();return[clamp((e.clientX-r.left)/r.width,0,1),clamp((e.clientY-r.top)/r.height,0,1)];}
 rectBox.addEventListener("pointerdown",e=>{if(!S.survey||!S.rect)return;const sv=S.survey,p=rptr(e);
   if(rectBox.classList.contains("adding")){e.preventDefault();if(!adding){adding=p;layoutRectOps();return;}const x0=Math.min(adding[0],p[0])*sv.widthCm,x1=Math.max(adding[0],p[0])*sv.widthCm,y0=Math.min(adding[1],p[1])*sv.heightCm,y1=Math.max(adding[1],p[1])*sv.heightCm;adding=null;rectBox.classList.remove("adding");
@@ -1170,6 +1205,9 @@ function refreshStatus(){const sv=S.survey;const ok=!!(sv&&sv.widthCm>0&&sv.heig
   else if(S.wallPartial&&S.wallPartial.any){const miss=[];if(!S.wallPartial.ceiling)miss.push("le plafond");if(!S.wallPartial.floor)miss.push("le sol");if(!S.wallPartial.left)miss.push("le bord gauche");if(!S.wallPartial.right)miss.push("le bord droit");
     ws.className="conf tight";ws.innerHTML=`${ICON("alert")}<span>${miss.length?`Sur cette photo, ${miss.join(", ")} ${miss.length>1?"ne sont pas visibles":"n'est pas visible"} : ${miss.includes("le plafond")||miss.includes("le sol")?"la hauteur ne peut pas être mesurée : indiquez-la ci-dessous (sol → plafond), ou reprenez la photo en reculant, du plafond au sol.":"la largeur n'est pas sûre : placez les coins manquants à la main ou reculez."}`:"Les bords trouvés ne se recoupent pas nettement : vérifiez les 4 coins avec la loupe."}</span>`;}
   else{ws.className="conf tight";ws.innerHTML=`${ICON("alert")}<span>Placez les 4 coins du mur : plafond à gauche et à droite, sol à gauche et à droite (sous la plinthe).</span>`;}
+  const os=$("outStatus");if(S.outlineCm&&S.survey){const zones=S.outlineZones||[];const m2=zones.reduce((a,z)=>a+z.w*z.h,0)/1e4;os.style.display="";os.className="conf ok tight";
+    os.innerHTML=`${ICON("check")}<span>Contour : ${S.outlineCm.length} points${zones.length?` · ${frn(m2,2)} m² hors contour (poutre, pan coupé) déduits et non tapissés`:" · identique aux 4 coins"}. Touchez un <b>+</b> pour ajouter un point, deux fois un point pour le retirer.</span><button class="link" type="button" id="outReset">Revenir aux 4 coins</button>`;$("outReset").onclick=()=>{resetOutline();if(S.stageMode==="outline")setStageMode("wall");refreshStatus();};}
+  else os.style.display="none";
   const cb=$("compBlock");const partialHeight=!!(S.survey&&(S.survey.heightIncomplete||S.survey.heightCompleted));
   if(partialHeight){cb.style.display="";const miss=S.wallPartial&&!S.wallPartial.ceiling?"Plafond hors cadre":"Sol hors cadre";$("compLabel").textContent=`${miss} — hauteur du mur, sol → plafond (cm)`;$("compHeight").min=Math.ceil(S.visibleHeightCm);
     $("compFoot").textContent=S.survey.heightCompleted?`Largeur mesurée ${fm(S.survey.widthCm)} m · visible sur la photo ≥ ${fm(S.visibleHeightCm)} m · hauteur retenue ${fm(S.survey.heightCm)} m (saisie).`:`Largeur mesurée ${fm(S.survey.widthCm)} m · visible sur la photo ≥ ${fm(S.visibleHeightCm)} m. Indiquez la hauteur réelle (au moins ${Math.ceil(S.visibleHeightCm)} cm), ou reprenez la photo du plafond au sol.`;}
@@ -1195,7 +1233,7 @@ function updateResult(){const sv=S.survey;const ok=!!(sv&&sv.widthCm>0&&sv.heigh
   $("rPaperH").textContent=`${frn(S.h/100)} m${bb?" (plinthe déduite)":""}`;
   $("rPro").textContent=`Incertitude réelle ± ${fq(sv.uncertaintyPct)} % · côtés opposés ${fq(sv.checks.oppositeSidesPct)} % · aspect de la référence ${fq(sv.checks.referenceAspectPct)} % · distorsion ${fq(sv.checks.distortionPct)} %${sv.heightLeftCm!==sv.heightRightCm?` · hauteurs ${fq(sv.heightLeftCm)} / ${fq(sv.heightRightCm)} cm`:""} · ${fq(sv.scalePxPerCm)} px/cm redressés · ${ENGINE_INFO}`;
   $("validateA").disabled=false;}
-const wall=()=>({w:S.w,h:S.h,openings:S.openings,strip:S.survey?{widthCm:S.survey.widthCm,heightLeftCm:S.survey.heightLeftCm,heightRightCm:S.survey.heightRightCm,openings:S.openings.map(toV2),baseboard:{enabled:S.survey.baseboard.enabled&&S.survey.baseboard.heightCm!=null,heightCm:S.survey.baseboard.heightCm}}:undefined});
+const wall=()=>({w:S.w,h:S.h,openings:allOpenings(),strip:S.survey?{widthCm:S.survey.widthCm,heightLeftCm:S.survey.heightLeftCm,heightRightCm:S.survey.heightRightCm,openings:allOpenings().map(toV2),baseboard:{enabled:S.survey.baseboard.enabled&&S.survey.baseboard.heightCm!=null,heightCm:S.survey.baseboard.heightCm}}:undefined});
 $("validateA").onclick=()=>{const coarse=matchMedia("(pointer: coarse)").matches,portrait=matchMedia("(orientation: portrait)").matches;if(coarse&&portrait){show("rotate");tryLock();}else show("viz");};
 function tryLock(){try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock("landscape").catch(()=>{});}catch(e){}}
 $("skipRotate").onclick=()=>show("viz");
@@ -1206,6 +1244,7 @@ let showStrips=false;
 function fitRect(){const st=$("vizstage");const W=st.clientWidth,Hh=st.clientHeight;if(!S.img||!W)return null;const k=Math.min(W/S.img.w,Hh/S.img.h);const w=S.img.w*k,h=S.img.h*k;return{x:(W-w)/2,y:(Hh-h)/2,w,h};}
 function renderViz(){const f=fitRect();if(!f||!S.quad||!(S.w>0))return;const fit=$("fit");fit.style.left=f.x+"px";fit.style.top=f.y+"px";fit.style.width=f.w+"px";fit.style.height=f.h+"px";const W=f.w,Hh=f.h,p=S.sel;
   // repère local du papier = plan du mur en cm × k (même échelle en x et y), envoyé sur le quadrilatère du mur par l'homographie
+  const clip=$("paperClip");if(S.outlineCm&&S.survey){const pts=outlineImg().map(p=>`${(p[0]*W).toFixed(1)}px ${(p[1]*Hh).toFixed(1)}px`);clip.style.clipPath=`polygon(${pts.join(",")})`;}else clip.style.clipPath="";
   const k=W/S.w,Hloc=(S.hFull||S.h)*k,Hpap=S.h*k;const paper=$("paper");paper.style.width=W+"px";paper.style.height=Hloc+"px";
   if(isPano(p)){paper.style.backgroundImage=`url("${svgTile(p)}")`;paper.style.backgroundSize=`100% ${Hpap}px`;paper.style.backgroundRepeat="no-repeat";}
   else{const tile=tileCm(p)*k;paper.style.backgroundImage=`url("${svgTile(p)}")`;paper.style.backgroundSize=`${tile}px ${tile}px`;paper.style.backgroundRepeat="repeat";}
