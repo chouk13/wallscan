@@ -51,7 +51,7 @@ async def run(b, name, w, h, mode, errs):
         except Exception:
             print(f"{tag} viseur: pas de résultat du guidage en direct (worker absent ?)")
         await pg.wait_for_timeout(400)
-        live = await pg.evaluate("LIVE.last?{ms:Math.round(LIVE.last.ms),ref:LIVE.last.ref&&LIVE.last.ref.kind,quad:!!LIVE.last.quad,lines:LIVE.last.lines&&Object.fromEntries(Object.entries(LIVE.last.lines).map(([k,v])=>[k,!!v])),ready:!!LIVE.last.ready,status:[...document.querySelectorAll('#liveStat .chip')].map(c=>c.textContent)}:null")
+        live = await pg.evaluate("""LIVE.last?{ms:Math.round(LIVE.last.ms),ref:LIVE.last.ref&&LIVE.last.ref.kind,quad:!!LIVE.last.quad,lines:LIVE.last.lines&&Object.fromEntries(Object.entries(LIVE.last.lines).map(([k,v])=>[k,!!v])),ready:!!LIVE.last.ready,status:[...document.querySelectorAll('#readout .ind')].map(c=>c.className.replace('ind','').trim()+':'+c.textContent),hint:document.getElementById('liveHint').textContent}:null""")
         print(f"{tag} guidage: {live}")
         await pg.screenshot(path=f"{OUT}/{tag}-1d-camera.png")
         await pg.click("#shutter")
