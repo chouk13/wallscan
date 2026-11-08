@@ -194,6 +194,18 @@
   .shutter.ready{border-color:var(--gold)}
   .shutter.ready i{background:var(--gold)}
   @media (orientation:landscape) and (max-height:520px){.livestat{left:16px;right:120px;bottom:calc(12px + var(--sab));align-items:flex-start}}
+  .aroverlay{position:fixed;inset:0;z-index:50;background:transparent;color:var(--paper);font-family:var(--serif)}
+  .aroverlay[hidden]{display:none}
+  .aroverlay canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .aroverlay .artop{position:absolute;left:20px;right:20px;top:calc(18px + var(--sat));text-align:center;text-shadow:0 1px 8px rgba(0,0,0,.75)}
+  .aroverlay .artop h2{font-size:20px;color:var(--paper);margin:4px 0 0}
+  .aroverlay .arstat{position:absolute;left:16px;right:16px;bottom:calc(136px + var(--sab));display:flex;flex-direction:column;gap:6px;align-items:center}
+  .aroverlay .arstat .chip{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;background:rgba(26,22,20,.62);backdrop-filter:blur(10px);border:1px solid rgba(244,239,230,.18);font-size:13px}
+  .aroverlay .arstat .chip i{width:8px;height:8px;border-radius:50%;background:rgba(244,239,230,.45);flex:0 0 8px}
+  .aroverlay .arstat .chip.ok i{background:var(--gold)}.aroverlay .arstat .chip.warn i{background:#C96A4A}
+  .aroverlay .arbottom{position:absolute;left:0;right:0;bottom:0;padding:22px calc(24px + var(--sar)) calc(18px + var(--sab)) calc(24px + var(--sal));display:flex;align-items:center;justify-content:space-between;background:linear-gradient(transparent,rgba(0,0,0,.62))}
+  .aroverlay .shutter[disabled]{opacity:.45}
+  #arBtn.ghost{visibility:hidden}#arBtn.on{visibility:visible}
   .camflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .3s;z-index:5}
   .camflash.on{opacity:.9;transition:none}
   .camfoot{position:absolute;left:0;right:0;bottom:calc(112px + var(--sab));z-index:2;text-align:center;font-size:12px;color:var(--paper70);text-shadow:0 1px 6px rgba(0,0,0,.75);z-index:3;pointer-events:none}
@@ -489,6 +501,7 @@
   <symbol id="i-collapse" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></symbol>
   <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
   <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+  <symbol id="i-relief" viewBox="0 0 24 24"><path d="M3 17 9 11l4 4 8-8M3 21h18M14 7h7v7"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1"/><path d="m4 16 4.5-4.5 3.5 3.5 2.5-2.5L20 18"/><circle cx="15.5" cy="9.5" r="1.5"/></symbol>
 </svg>
 
@@ -575,6 +588,13 @@
   </div></div>
 </section>
 
+<!-- ============ SCAN RELIEF (WebXR, Android) : carte de profondeur ARCore → plan du mur, reliefs en surimpression, capture ============ -->
+<div id="arOverlay" class="aroverlay" hidden>
+  <canvas id="arMask"></canvas>
+  <div class="artop"><span class="lbl">Scan du relief</span><h2 id="arTitle">Bougez légèrement le téléphone devant le mur.</h2></div>
+  <div class="arstat" id="arStat"></div>
+  <div class="arbottom"><button class="camside" id="arCancel" type="button" aria-label="Annuler"><svg class="ic"><use href="#i-close"/></svg></button><button class="shutter" id="arShot" type="button" aria-label="Capturer" disabled><i></i></button><button class="camside ghost" type="button" tabindex="-1" aria-hidden="true"></button></div>
+</div>
 <!-- ============ ÉTAPE 1 · VISEUR EN DIRECT (Atelier) : caméra arrière, niveau, déclencheur ============ -->
 <section id="camera" class="screen atelier">
   <div class="cam" id="camBox">
@@ -593,7 +613,7 @@
   <div class="cambottom">
     <button class="camside" id="camImport" type="button" aria-label="Importer une photo existante"><svg class="ic"><use href="#i-image"/></svg></button>
     <button class="shutter" id="shutter" type="button" aria-label="Prendre la photo"><i></i></button>
-    <button class="camside ghost" type="button" tabindex="-1" aria-hidden="true"></button>
+    <button class="camside ghost" id="arBtn" type="button" aria-label="Scanner le relief du mur (réalité augmentée)"><svg class="ic"><use href="#i-relief"/></svg></button>
   </div>
 </section>
 
@@ -956,6 +976,85 @@ async function capturePhoto(){const btn=$("shutter");if(btn.classList.contains("
   S.liveHint=LIVE.last?{...LIVE.last}:null;btn.classList.remove("busy");stopCamera();stopLevel();loadPhoto(src,null);}
 $("shutter").onclick=capturePhoto;$("camBack").onclick=()=>show("prepare");
 
+// ============================================================ SCAN RELIEF — WebXR (Chrome Android + ARCore). La carte de profondeur donne le plan du
+// mur (RANSAC sur les points 3D), tout ce qui s'écarte du plan de plus de 3 cm est un relief (poutre, pilier, radiateur, meuble) ou un
+// creux (niche). La capture prend l'image caméra (Raw Camera Access) + le plan : l'échelle vient de la profondeur, sans feuille.
+// Indisponible sur iOS (Safari sans WebXR AR) : le bouton reste caché, le parcours photo + feuille demeure.
+const AR={session:null,gl:null,binding:null,refSpace:null,canvas:null,last:null,frameN:0,shot:false,pending:false,prog:null};
+const M4=(m,v)=>[m[0]*v[0]+m[4]*v[1]+m[8]*v[2]+m[12]*v[3],m[1]*v[0]+m[5]*v[1]+m[9]*v[2]+m[13]*v[3],m[2]*v[0]+m[6]*v[1]+m[10]*v[2]+m[14]*v[3],m[3]*v[0]+m[7]*v[1]+m[11]*v[2]+m[15]*v[3]];
+const V={sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm:a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return[a[0]/l,a[1]/l,a[2]/l];},add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],mul:(a,k)=>[a[0]*k,a[1]*k,a[2]*k]};
+(async()=>{try{if(navigator.xr&&await navigator.xr.isSessionSupported("immersive-ar"))$("arBtn").classList.add("on");}catch(_){}})();
+$("arBtn").onclick=()=>startArScan();$("arCancel").onclick=()=>{if(AR.session)AR.session.end();};$("arShot").onclick=()=>{AR.pending=true;arStatus([{cls:"ok",text:"Capture…"}]);};
+function arStatus(items){$("arStat").innerHTML=items.map(i=>`<span class="chip ${i.cls}"><i></i>${i.text}</span>`).join("");}
+async function startArScan(){if(AR.session)return;const overlay=$("arOverlay");overlay.hidden=false;arStatus([{cls:"",text:"Démarrage de la réalité augmentée…"}]);$("arShot").disabled=true;
+  try{stopCamera();
+    const session=await navigator.xr.requestSession("immersive-ar",{requiredFeatures:["local","depth-sensing"],optionalFeatures:["dom-overlay","camera-access"],depthSensing:{usagePreference:["cpu-optimized"],dataFormatPreference:["luminance-alpha","float32"]},domOverlay:{root:overlay}});
+    AR.session=session;AR.shot=false;AR.pending=false;AR.last=null;AR.frameN=0;
+    const canvas=document.createElement("canvas");AR.canvas=canvas;const gl=canvas.getContext("webgl2",{xrCompatible:true,alpha:true})||canvas.getContext("webgl",{xrCompatible:true,alpha:true});AR.gl=gl;await gl.makeXRCompatible();
+    session.updateRenderState({baseLayer:new XRWebGLLayer(session,gl,{alpha:true})});AR.binding=new XRWebGLBinding(session,gl);AR.refSpace=await session.requestReferenceSpace("local");
+    session.addEventListener("end",()=>{AR.session=null;overlay.hidden=true;$("arMask").getContext("2d").clearRect(0,0,$("arMask").width,$("arMask").height);if(!AR.shot)openCamera();});
+    session.requestAnimationFrame(arFrame);}
+  catch(e){console.warn("AR",e);overlay.hidden=true;AR.session=null;toast(e&&e.name==="NotSupportedError"?"Réalité augmentée indisponible sur ce téléphone (ARCore requis)":`Scan du relief impossible : ${e&&e.message||e}`);openCamera();}}
+function arFrame(t,frame){const session=AR.session;if(!session)return;session.requestAnimationFrame(arFrame);const gl=AR.gl,layer=session.renderState.baseLayer;
+  gl.bindFramebuffer(gl.FRAMEBUFFER,layer.framebuffer);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  const pose=frame.getViewerPose(AR.refSpace);if(!pose)return;const view=pose.views[0];AR.frameN++;
+  if(AR.pending&&AR.last&&AR.last.ok){arCapture(view,layer);return;}
+  if(AR.frameN%3!==0)return;let depth=null;try{depth=frame.getDepthInformation(view);}catch(e){console.warn("depth",e);}
+  if(!depth){arStatus([{cls:"",text:"Profondeur en cours d'initialisation : bougez légèrement le téléphone"}]);return;}
+  const vp=layer.getViewport(view);const res=arAnalyze(depth,view,vp);AR.last=res;arDraw(res,vp);arStatus(arAssess(res));$("arShot").disabled=!res.ok;}
+function arAnalyze(depth,view,vp){const P=view.projectionMatrix,Mv=view.transform.matrix;const aspect=vp.width/vp.height;const GX=36,GY=Math.max(12,Math.round(36/aspect));const pts=[];
+  for(let j=0;j<GY;j++)for(let i=0;i<GX;i++){const u=(i+.5)/GX,v=(j+.5)/GY;let d=0;try{d=depth.getDepthInMeters(u,v);}catch(_){d=0;}
+    if(!(d>0.25&&d<8))continue;const xn=2*u-1,yn=1-2*v;const X=d*(xn+P[8])/P[0],Y=d*(yn+P[9])/P[5];const pv=[X,Y,-d];const pl=M4(Mv,[pv[0],pv[1],pv[2],1]);pts.push({i,j,u,v,d,p:[pl[0],pl[1],pl[2]]});}
+  const cam=M4(Mv,[0,0,0,1]).slice(0,3);const fwd=V.norm(M4(Mv,[0,0,-1,0]).slice(0,3));
+  const res={ok:false,cells:[],plane:null,valid:pts.length,total:GX*GY,GX,GY,cam,fwd,P,Mv,inv:view.transform.inverse.matrix,distM:0,facing:0,inlierRatio:0,relief:0,recess:0};
+  if(pts.length<40)return res;
+  // RANSAC plan vertical dominant au centre
+  const central=pts.filter(q=>q.u>0.2&&q.u<0.8&&q.v>0.2&&q.v<0.8);const pool=central.length>=20?central:pts;let best=null;let seed=1234567;const rnd=()=>((seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff);
+  for(let it=0;it<80;it++){const a=pool[Math.floor(rnd()*pool.length)].p,b=pool[Math.floor(rnd()*pool.length)].p,c=pool[Math.floor(rnd()*pool.length)].p;let n=V.cross(V.sub(b,a),V.sub(c,a));const l=Math.hypot(n[0],n[1],n[2]);if(l<1e-6)continue;n=V.mul(n,1/l);if(Math.abs(n[1])>0.4)continue;
+    const d0=V.dot(n,a);let cnt=0;for(const q of pts)if(Math.abs(V.dot(n,q.p)-d0)<0.02)cnt++;if(!best||cnt>best.cnt)best={n,d0,cnt};}
+  if(!best)return res;
+  // raffinement : moyenne des points proches (centroïde + normale moyenne des triangles) puis orientation vers la caméra
+  const inl=pts.filter(q=>Math.abs(V.dot(best.n,q.p)-best.d0)<0.02);let cx=[0,0,0];for(const q of inl)cx=V.add(cx,q.p);cx=V.mul(cx,1/inl.length);
+  let n=best.n;if(V.dot(n,V.sub(cam,cx))<0)n=V.mul(n,-1);const d0=V.dot(n,cx);
+  for(const q of pts){const dist=V.dot(n,q.p)-d0;q.cls=Math.abs(dist)<=0.03?0:dist>0?1:-1;q.dist=dist;}
+  res.plane={n,d0,c:cx};res.cells=pts;res.inlierRatio=inl.length/pts.length;res.distM=V.dot(V.sub(cx,cam),V.mul(n,-1))||Math.hypot(...V.sub(cx,cam));res.facing=Math.abs(V.dot(n,fwd));
+  res.relief=pts.filter(q=>q.cls===1).length;res.recess=pts.filter(q=>q.cls===-1).length;res.ok=res.inlierRatio>=0.35&&pts.length>=0.5*GX*GY&&res.facing>=0.8;return res;}
+function arDraw(res,vp){const c=$("arMask");const W=window.innerWidth,Hh=window.innerHeight;if(c.width!==W||c.height!==Hh){c.width=W;c.height=Hh;}const x=c.getContext("2d");x.clearRect(0,0,W,Hh);if(!res.cells.length)return;
+  const cw=W/res.GX,ch=Hh/res.GY;for(const q of res.cells){if(q.cls===0)continue;x.fillStyle=q.cls===1?"rgba(201,106,74,.42)":"rgba(74,120,201,.38)";x.fillRect(q.i*cw,q.j*ch,cw+.5,ch+.5);}}
+function arAssess(res){const out=[];if(!res.ok){if(res.valid<0.5*res.total)out.push({cls:"warn",text:"Profondeur incomplète : bougez lentement le téléphone, à 1,5–4 m du mur"});else if(res.inlierRatio<0.35)out.push({cls:"warn",text:"Aucun grand plan vertical au centre : visez le mur"});else if(res.facing<0.8)out.push({cls:"warn",text:"Mettez-vous en face du mur"});return out;}
+  out.push({cls:"ok",text:`Mur détecté à ${frn(res.distM,1)} m · ${Math.round(res.inlierRatio*100)} % de la zone est plane`});
+  if(res.relief>0)out.push({cls:"warn",text:`Relief devant le mur : ${Math.round(res.relief/res.cells.length*100)} % de la vue (rouge) — exclu du papier après capture`});
+  if(res.recess>0)out.push({cls:"",text:`Creux ou fond plus loin : ${Math.round(res.recess/res.cells.length*100)} % (bleu)`});
+  return out;}
+function arCapture(view,layer){const res=AR.last;AR.pending=false;const cam=view.camera;const gl=AR.gl;
+  if(!cam){toast("Capture d'image indisponible dans cette session AR : refaites la photo avec le viseur");AR.shot=false;AR.session.end();return;}
+  try{const tex=AR.binding.getCameraImage(cam);const w=cam.width,h=cam.height;
+    // rendu de la texture caméra dans un framebuffer lisible, puis lecture des pixels
+    if(!AR.prog){const vs=gl.createShader(gl.VERTEX_SHADER);gl.shaderSource(vs,"attribute vec2 a;varying vec2 t;void main(){t=a*0.5+0.5;gl_Position=vec4(a,0.,1.);}");gl.compileShader(vs);const fs=gl.createShader(gl.FRAGMENT_SHADER);gl.shaderSource(fs,"precision mediump float;varying vec2 t;uniform sampler2D s;void main(){gl_FragColor=texture2D(s,t);}");gl.compileShader(fs);const pr=gl.createProgram();gl.attachShader(pr,vs);gl.attachShader(pr,fs);gl.linkProgram(pr);const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);AR.prog={pr,buf,a:gl.getAttribLocation(pr,"a"),s:gl.getUniformLocation(pr,"s")};}
+    const out=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,out);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    const fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,out,0);gl.viewport(0,0,w,h);
+    gl.useProgram(AR.prog.pr);gl.bindBuffer(gl.ARRAY_BUFFER,AR.prog.buf);gl.enableVertexAttribArray(AR.prog.a);gl.vertexAttribPointer(AR.prog.a,2,gl.FLOAT,false,0,0);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(AR.prog.s,0);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+    const px=new Uint8Array(w*h*4);gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,px);gl.bindFramebuffer(gl.FRAMEBUFFER,layer.framebuffer);gl.deleteFramebuffer(fb);gl.deleteTexture(out);
+    const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");const id=x.createImageData(w,h);for(let y=0;y<h;y++)id.data.set(px.subarray((h-1-y)*w*4,(h-y)*w*4),y*w*4);x.putImageData(id,0,0);const src=c.toDataURL("image/jpeg",.92);
+    // repère métrique : carré de 1 m dans le plan, autour du point visé au centre, projeté dans l'image (coordonnées normalisées de la vue)
+    const {n,d0}=res.plane;const camP=res.cam;const fwd=res.fwd;const denom=V.dot(n,fwd);const tHit=(d0-V.dot(n,camP))/denom;const C=V.add(camP,V.mul(fwd,tHit));
+    const up=[0,1,0];const u=V.norm(V.cross(up,n)),vv=V.norm(V.cross(n,u));const corners=[V.add(V.add(C,V.mul(u,-.5)),V.mul(vv,.5)),V.add(V.add(C,V.mul(u,.5)),V.mul(vv,.5)),V.add(V.add(C,V.mul(u,.5)),V.mul(vv,-.5)),V.add(V.add(C,V.mul(u,-.5)),V.mul(vv,-.5))];
+    const proj=pl=>{const pv=M4(res.inv,[pl[0],pl[1],pl[2],1]);const clip=M4(res.P,pv);const xn=clip[0]/clip[3],yn=clip[1]/clip[3];return[(xn+1)/2,(1-yn)/2];};
+    let refQuad=corners.map(proj);if(refQuad[0][0]>refQuad[1][0]){refQuad=[refQuad[1],refQuad[0],refQuad[3],refQuad[2]];}
+    S.ar={distM:res.distM,inlierRatio:res.inlierRatio,cells:res.cells.filter(q=>q.cls!==0).map(q=>({u:q.u,v:q.v,cls:q.cls,dist:q.dist})),GX:res.GX,GY:res.GY};
+    AR.shot=true;AR.session.end();S.refChoice="ar";loadPhoto(src,{refQuad,refKind:"ar",refConf:res.inlierRatio});toast("Scan relief : échelle et reliefs transmis à l'analyse");}
+  catch(e){console.warn("AR capture",e);toast(`Capture impossible : ${e&&e.message||e}`);AR.shot=false;AR.session.end();}}
+// Reliefs (cellules rouges) → zones exclues en cm dans le plan du mur : grille de 10 cm, composantes connexes, rectangles englobants.
+function arReliefZones(sv){const A=S.ar;if(!A||!A.cells.length||!sv.homography)return[];const W=sv.widthCm,Hh=sv.heightCm;const cell=10;const gx=Math.ceil(W/cell),gy=Math.ceil(Hh/cell);const grid=new Int8Array(gx*gy);const dsum=new Float32Array(gx*gy);
+  for(const q of A.cells){if(q.cls!==1)continue;const c=apply(sv.homography,q.u*S.img.w,q.v*S.img.h);const i=Math.floor(c[0]/cell),j=Math.floor(c[1]/cell);if(i<0||j<0||i>=gx||j>=gy)continue;grid[j*gx+i]=1;dsum[j*gx+i]+=q.dist;}
+  const seen=new Uint8Array(gx*gy);const zones=[];
+  for(let k=0;k<gx*gy;k++){if(!grid[k]||seen[k])continue;const stack=[k];seen[k]=1;let minI=gx,maxI=-1,minJ=gy,maxJ=-1,cnt=0,ds=0;
+    while(stack.length){const m=stack.pop();const i=m%gx,j=(m-i)/gx;cnt++;ds+=dsum[m];minI=Math.min(minI,i);maxI=Math.max(maxI,i);minJ=Math.min(minJ,j);maxJ=Math.max(maxJ,j);
+      for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){const ni=i+di,nj=j+dj;if(ni<0||nj<0||ni>=gx||nj>=gy)continue;const nk=nj*gx+ni;if(grid[nk]&&!seen[nk]){seen[nk]=1;stack.push(nk);}}}
+    if(cnt<2)continue;const x=minI*cell,y=minJ*cell,w=Math.min(W,(maxI+1)*cell)-x,h=Math.min(Hh,(maxJ+1)*cell)-y;const depthCm=Math.round(ds/cnt*100);
+    zones.push({id:"relief"+zones.length,t:"excluded",x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h),conf:0.8,src:"auto",note:`Relief détecté par la profondeur : ${depthCm} cm devant le mur. À confirmer.`});}
+  return zones.slice(0,6);}
+
 // ============================================================ GUIDAGE EN DIRECT : le moteur de mesure tourne sur les images du viseur
 // (Web Worker construit à partir du bundle WSMeasure inliné) : feuille/mire détectée et bien placée ?, bords du mur trouvés ?,
 // plafond et sol dans le cadre ? Les coins proposés sont affichés en direct, puis servent d'indice après la prise de vue.
@@ -1045,6 +1144,7 @@ function orderQuad(pts){const cx=pts.reduce((s,p)=>s+p[0],0)/4,cy=pts.reduce((s,
 function loadPhoto(src,preset){const im=new Image();im.onload=()=>{const m=2048,k=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,c.width,c.height);
   const d=x.getImageData(0,0,c.width,c.height).data,n=c.width*c.height;const R=new Uint8ClampedArray(n),G=new Uint8ClampedArray(n),B=new Uint8ClampedArray(n);for(let i=0,j=0;i<n;i++,j+=4){R[i]=d[j];G[i]=d[j+1];B[i]=d[j+2];}
   S.orig=im;S.img={src:k<1?c.toDataURL("image/jpeg",.9):src,w:c.width,h:c.height};S.planes={r:{width:c.width,height:c.height,data:R},g:{width:c.width,height:c.height,data:G},b:{width:c.width,height:c.height,data:B}};S.gray=WSMeasure.toGray(d,c.width,c.height);
+  const fromAr=!!(preset&&preset.refKind==="ar");if(!fromAr){S.ar=null;if(S.refChoice==="ar"){const sel=$("refChoice").querySelector("input:checked");S.refChoice=sel?sel.value:"a4";}}
   Object.assign(S,{preset:preset||null,quad:null,refQuad:null,refDetected:false,refConf:0,k1:0,lines:null,survey:null,rect:null,plan:null,openings:[],opProposed:false,bb:{enabled:false,heightCm:null,source:null,pt:null,unc:0},w:0,h:0,hFull:0,number:null,sent:false,corrected:false,placing:[],wallProposed:false,wallFromLive:false,wallPartial:null,compHeight:null,visibleHeightCm:0,outlineCm:null,outlineZones:[],demo:!!preset,stageMode:"none"});
   opSel=null;adding=null;$("rectBox").classList.remove("adding");$("imgA").src=S.img.src;$("imgV").src=S.img.src;$("light").src=S.img.src;$("bbSeg").querySelectorAll("button").forEach(b=>b.classList.toggle("sel",b.dataset.bb==="0"));$("bbBox").style.display="none";$("modeBb").disabled=true;$("bbInput").value="";renderOpenings();
   show("analyze");startAnalysis();};im.src=src;}
@@ -1155,7 +1255,8 @@ function loupe(p,e){const c=$("loupe"),x=c.getContext("2d");const src=S.orig||$(
   let L=e.clientX-60,T=e.clientY-164;if(T<8)T=e.clientY+40;L=clamp(L,8,innerWidth-128);c.style.left=L+"px";c.style.top=T+"px";c.style.display="block";}
 // Mesure : rectification par WSMeasure (feuille / mire / secours hauteur sous plafond), puis plinthes
 function computeMeasure(light){if(!S.img||!S.quad){refreshStatus();return;}const imageSize={w:S.img.w,h:S.img.h};const wallQuad=toPx(S.quad);let refQuad,refSize,refKind;
-  if(S.refChoice==="ceiling"){refQuad=wallQuad;refSize={w:S.ceiling*quadAspect(wallQuad,imageSize.w,imageSize.h),h:S.ceiling};refKind="manual_a4";}
+  if(S.refChoice==="ar"){if(!S.refQuad){S.survey=null;refreshStatus();return;}refQuad=toPx(S.refQuad);refSize={w:100,h:100};refKind="a4";}
+  else if(S.refChoice==="ceiling"){refQuad=wallQuad;refSize={w:S.ceiling*quadAspect(wallQuad,imageSize.w,imageSize.h),h:S.ceiling};refKind="manual_a4";}
   else{if(!S.refQuad){S.survey=null;refreshStatus();return;}refQuad=toPx(S.refQuad);refSize=S.refChoice==="mire"?{w:19,h:27.7}:{w:21,h:29.7};refKind=S.refDetected?S.refKind:"manual_a4";}
   let sv=WSMeasure.rectify({wallQuad,refQuad,refSizeCm:refSize,refKind,k1:S.k1,imageSize});S.outlineZones=outlineZones(sv);sv.openings=allOpenings().map(toV2);
   // Mur incomplet sur la photo (plafond ou sol hors cadre) et coins non corrigés : la largeur est mesurée, la hauteur visible est un
@@ -1177,6 +1278,7 @@ function rectifyView(){const sv=S.survey,c=$("rectCanvas");if(!sv||!(sv.widthCm>
     // Décrochements au plafond (poutre, retombée) : proposés comme zones exclues à confirmer — profondeur 8 à 45 % de la hauteur, portée ≥ 25 % de la largeur
     if(!S.survey.heightIncomplete&&!S.survey.heightCompleted){const notches=WSMeasure.proposeCeilingNotches(rectG,{minDepthPx:Math.max(6,8*s),maxDepthPx:Math.round(outH*0.45),minSpanPx:Math.round(outW*0.25),maxGapPx:Math.round(5*s)})||[];
       notches.filter(nz=>nz.confidence>=0.55).forEach((nz,i)=>S.openings.push({id:"beam"+i,t:"excluded",x:Math.round(nz.x/s*10)/10,y:0,w:Math.round(nz.w/s*10)/10,h:Math.round(nz.h/s*10)/10,conf:nz.confidence,src:"auto",note:"Poutre ou retombée au plafond ? À confirmer."}));}
+    if(S.ar&&S.ar.cells){S.openings.push(...arReliefZones(sv));}
     S.opProposed=true;S.survey.openings=S.openings.map(toV2);renderOpenings();refreshStatus();}
   layoutRectOps();}
 // Ouvertures sur la vue de face : rectangles déplaçables (corps) et redimensionnables (poignées haut-gauche / bas-droite), ajout en deux taps
@@ -1233,14 +1335,14 @@ function updateResult(){const sv=S.survey;const ok=!!(sv&&sv.widthCm>0&&sv.heigh
   if(!ok){["kW","kH","kA"].forEach(id=>$(id).textContent="–");$("kTol").textContent="";c.className="conf wait";c.innerHTML=`${ICON("alert")}<span>Mesure incomplète : placez la référence et les coins du mur.</span>`;$("warnBox").innerHTML="";$("validateA").disabled=true;return;}
   const bb=sv.baseboard.enabled&&sv.baseboard.heightCm!=null?sv.baseboard.heightCm:0;S.hFull=sv.heightCm;S.w=Math.round(sv.widthCm);S.h=Math.round(sv.heightCm-bb);
   const tol=sv.displayTolerancePct;$("kW").textContent=frn(sv.widthCm/100);$("kH").textContent=frn(sv.heightCm/100);$("kTol").textContent=`± ${tol} %`;$("kA").textContent=frn(Math.round(billableArea(wall())*10)/10,1);
-  const ceilingMode=S.refChoice==="ceiling";S.method=ceilingMode?"hauteur sous plafond":S.refKind==="mire"?"mire WallScan":S.refDetected?"feuille A4":"feuille A4 tapée à la main";S.confidence=ceilingMode?0.75:S.refKind==="mire"?0.95:S.refDetected?0.9:0.82;
+  const ceilingMode=S.refChoice==="ceiling";S.method=ceilingMode?"hauteur sous plafond":S.refKind==="ar"?"réalité augmentée (ARCore)":S.refKind==="mire"?"mire WallScan":S.refDetected?"feuille A4":"feuille A4 tapée à la main";S.confidence=ceilingMode?0.75:S.refKind==="ar"?0.9:S.refKind==="mire"?0.95:S.refDetected?0.9:0.82;
   const warns=[...new Set([...((sv.checks&&sv.checks.warnings)||[]),...(sv.warnings||[])])];
   if(ceilingMode){c.className="conf";c.innerHTML=`${ICON("alert")}<span>D'après la hauteur sous plafond saisie (${S.ceiling} cm), sans référence sur la photo : estimation ± 5 %. Pour un devis, refaites la mesure avec une feuille A4 ou la mire.</span>`;}
   else if(S.refDetected){c.className="conf ok";c.innerHTML=`${ICON("check")}<span>${S.refKind==="mire"?"Mire WallScan":"Feuille A4"} détectée automatiquement · précision ± ${tol} %.</span>`;}
   else{c.className="conf ok";c.innerHTML=`${ICON("check")}<span>Feuille tapée à la main · estimation ± ${tol} %.</span>`;}
   const WARN_FR={height_completed_manual:"Plafond hors cadre sur la photo : la largeur est mesurée, la hauteur est celle que vous avez saisie.",height_incomplete:"Plafond hors cadre : la hauteur affichée est seulement la partie visible. Saisissez la hauteur du mur pour compléter.",floor_line_ambiguous:"La ligne du sol est incertaine (plinthe ou ombre) : vérifiez les deux coins du bas.",wall_corners_inconsistent:"Les côtés opposés du mur ne concordent pas : vérifiez les quatre coins avec la loupe.",wall_trapezoid:"Les deux hauteurs diffèrent : le mur est traité comme un trapèze (hauteurs gauche et droite conservées).",reference_aspect_mismatch:"La feuille semble inclinée ou pas tout à fait à plat : l'échelle est moins sûre. Recollez-la bien à plat si possible.",reference_too_small:"La feuille est petite sur la photo : rapprochez-vous ou utilisez la mire pour plus de précision.",distortion_high:"L'objectif déforme beaucoup l'image (grand-angle) : la mesure reste indicative. Évitez le mode ×0,5.",distortion_not_estimated:"La déformation de l'objectif n'a pas pu être estimée : les bords du mur ne sont pas assez visibles.",uncertainty_above_display_tolerance:"La précision réelle dépasse la tolérance affichée : refaites la photo plus près, de face.",baseboard_height_required:"Indiquez la hauteur de plinthe (mesurée sur la photo ou saisie) pour la déduire."};
   $("warnBox").innerHTML=warns.map(w=>`<div class="conf">${ICON("alert")}<span>${WARN_FR[w]||w}</span></div>`).join("");
-  $("rRef").textContent=ceilingMode?`Hauteur sous plafond ${S.ceiling} cm (saisie)`:S.refKind==="mire"?"Mire WallScan, 19 × 27,7 cm":`Feuille A4, 21 × 29,7 cm${S.refDetected?"":" (coins tapés)"}`;
+  $("rRef").textContent=ceilingMode?`Hauteur sous plafond ${S.ceiling} cm (saisie)`:S.refKind==="ar"?`Réalité augmentée, mur à ${S.ar?frn(S.ar.distM,1):"?"} m`:S.refKind==="mire"?"Mire WallScan, 19 × 27,7 cm":`Feuille A4, 21 × 29,7 cm${S.refDetected?"":" (coins tapés)"}`;
   $("rOpen").textContent=S.openings.length?S.openings.map(o=>`${KIND_LBL[o.t]||o.t} ${fq(o.w)} × ${fq(o.h)} cm`).join(", "):"Aucune";
   $("rBb").textContent=!sv.baseboard.enabled?"Sans plinthes":sv.baseboard.heightCm==null?"Hauteur inconnue — non déduite":`${fq(sv.baseboard.heightCm)} cm, ${sv.baseboard.source==="measured"?"mesurés sur la photo":"saisis"}`;
   $("rPaperH").textContent=`${frn(S.h/100)} m${bb?" (plinthe déduite)":""}`;
