@@ -222,7 +222,7 @@
 
   /* ---------- Vérifier (charnière : photo Atelier posée sur la fiche Carnet) ---------- */
   .frame{background:var(--char);padding:12px 12px 32px;display:flex;justify-content:center}
-  .stage{position:relative;max-width:720px;flex:0 1 auto;background:var(--char);touch-action:none;user-select:none;-webkit-user-select:none}
+  .stage{position:relative;max-width:720px;flex:0 1 auto;background:var(--char);touch-action:pan-y;user-select:none;-webkit-user-select:none}
   .stage img.photo{display:block;max-width:100%;max-height:56vh;width:auto;height:auto}
   svg.ov{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible}
   .handle{position:absolute;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:var(--paper);border:2px solid var(--char);z-index:3;touch-action:none;cursor:grab}
@@ -297,7 +297,8 @@
   .rowhead .h3{margin:0}
   .opening{display:grid;grid-template-columns:minmax(118px,1.4fr) 1fr 1fr 48px;gap:8px;align-items:end;margin-top:10px}
   .opening .iconbtn{border-color:var(--ink30);color:var(--char)}
-  .rectbox{position:relative;margin-top:12px;background:var(--char);touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+  .rectbox{position:relative;margin-top:12px;background:var(--char);touch-action:pan-y;user-select:none;-webkit-user-select:none;overflow:hidden}
+  .rectbox.adding{touch-action:none}
   .rectbox canvas{display:block;width:100%;height:auto}
   .rectbox .empty-r{color:var(--paper70);padding:28px 20px;text-align:center;font-size:13px}
   .rectbox.adding{cursor:crosshair}
