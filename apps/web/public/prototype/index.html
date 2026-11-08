@@ -1418,15 +1418,23 @@ function computeMeasure(light){if(!S.img||!S.quad){refreshStatus();return;}const
   else if(S.refChoice==="ceiling"){refQuad=wallQuad;refSize={w:S.ceiling*quadAspect(wallQuad,imageSize.w,imageSize.h),h:S.ceiling};refKind="manual_a4";}
   else{if(!S.refQuad){S.survey=null;refreshStatus();return;}refQuad=toPx(S.refQuad);refSize=S.refChoice==="mire"?{w:19,h:27.7}:{w:21,h:29.7};refKind=S.refDetected?S.refKind:"manual_a4";}
   let sv=WSMeasure.rectify({wallQuad,refQuad,refSizeCm:refSize,refKind,k1:S.k1,imageSize});
-  // Garde-fous de qualité du moteur (plausibilité, référence ambiguë ou d'échelle suspecte, flou, distorsion) : jamais silencieux
-  if(typeof WSMeasure.withQualityWarnings==="function"&&S.refChoice!=="ceiling"&&S.refChoice!=="ar"){try{sv=WSMeasure.withQualityWarnings(sv,{sharpness:S.sharp&&S.sharp.src==="moteur"?S.sharp:undefined,reference:S.refDet&&!S.corrected?S.refDet:undefined,distortion:S.k1Est||undefined},refQuad);}catch(e){console.warn("quality",e);}}
   S.outlineZones=outlineZones(sv);sv.openings=allOpenings().map(toV2);
   // Mur incomplet sur la photo (plafond ou sol hors cadre) et coins non corrigés : la largeur est mesurée, la hauteur visible est un
   // minimum ; la hauteur complète vient de la saisie (sol → plafond). Les ouvertures sont repositionnées depuis le sol.
   S.visibleHeightCm=0;const topMissing=!!(S.wallPartial&&S.wallPartial.any&&!S.wallPartial.ceiling&&!S.corrected),botMissing=!!(S.wallPartial&&S.wallPartial.any&&!S.wallPartial.floor&&!S.corrected);
   if((topMissing||botMissing)&&sv.widthCm>0&&sv.heightCm>0){S.visibleHeightCm=sv.heightCm;const Hc=S.compHeight;
-    if(Hc&&Hc>=sv.heightCm){const delta=Hc-sv.heightCm;sv.heightCm=Hc;sv.heightLeftCm=Hc;sv.heightRightCm=Hc;sv.areaM2=sv.widthCm*Hc/1e4;if(topMissing)sv.openings=sv.openings.map(o=>({...o,y:o.y+delta}));sv.warnings=[...(sv.warnings||[]).filter(w=>w!=="wall_trapezoid"),"height_completed_manual"];sv.heightCompleted=true;}
+    // Le moteur a jugé la plausibilité et l'échelle de la feuille sur la hauteur VISIBLE : on les réévalue sur la hauteur complète.
+    const PH=WSMeasure.PLAUSIBLE_HEIGHT_CM||{min:180,max:450},PW=WSMeasure.PLAUSIBLE_WIDTH_CM||{min:100,max:1200},RF=WSMeasure.REF_WALL_FRACTION||{min:0.04,max:0.14};
+    if(sv.checks&&sv.checks.warnings)sv.checks.warnings=sv.checks.warnings.filter(w=>w!=="measure_implausible"&&w!=="reference_scale_suspect");
+    if(Hc&&Hc>=sv.heightCm){const delta=Hc-sv.heightCm;sv.heightCm=Hc;sv.heightLeftCm=Hc;sv.heightRightCm=Hc;sv.areaM2=sv.widthCm*Hc/1e4;if(topMissing)sv.openings=sv.openings.map(o=>({...o,y:o.y+delta}));sv.warnings=[...(sv.warnings||[]).filter(w=>w!=="wall_trapezoid"),"height_completed_manual"];sv.heightCompleted=true;
+      const extra=[];if(Hc<PH.min||Hc>PH.max||sv.widthCm<PW.min||sv.widthCm>PW.max)extra.push("measure_implausible");
+      if(S.refChoice!=="ceiling"&&S.refChoice!=="ar"){const refH=refKind==="mire"||S.refKind==="mire"?27.7:29.7;const frac=refH/Hc;if(frac>RF.max||frac<RF.min)extra.push("reference_scale_suspect");}
+      if(extra.length&&sv.checks)sv.checks.warnings=[...sv.checks.warnings,...extra];}
     else{sv.warnings=[...(sv.warnings||[]),"height_incomplete"];sv.heightIncomplete=true;}}
+  // Garde-fous de qualité du moteur (plausibilité, référence ambiguë ou d'échelle suspecte, flou, distorsion) : jamais silencieux.
+  // Évalués APRÈS la complétion de hauteur : un mur dont le plafond est hors cadre n'est pas « invraisemblable », il est incomplet.
+  if(typeof WSMeasure.withQualityWarnings==="function"&&S.refChoice!=="ceiling"&&S.refChoice!=="ar"&&!sv.heightIncomplete){
+    try{sv=WSMeasure.withQualityWarnings(sv,{sharpness:S.sharp&&S.sharp.src==="moteur"?S.sharp:undefined,reference:S.refDet&&!S.corrected?S.refDet:undefined,distortion:S.k1Est||undefined},refQuad);}catch(e){console.warn("quality",e);}}
   sv=WSMeasure.applyBaseboard(sv,S.bb.enabled,S.bb.heightCm,S.bb.source);S.survey=sv;if(!light)layoutA();refreshStatus();}
 $("compHeight").addEventListener("input",e=>{const v=Math.round(Number(e.target.value)||0);S.compHeight=v>=100&&v<=600?v:null;computeMeasure(true);rectifyView();});
 // Vue de face : warpToPlane sur les trois plans R, V, B (le moteur ne traite que des plans 8 bits) → canvas couleur ; propositions d'ouvertures au premier passage

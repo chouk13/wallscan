@@ -117,11 +117,13 @@ export const REFUSAL_WARNINGS: readonly string[] = [
 ];
 
 /**
- * Plausibilité d'un mur intérieur (cm) : hauteur 180–450, largeur 100–1 200 (docs/quality-thresholds.md). Hors bornes →
- * `measure_implausible`. Une fausse référence (autre rectangle clair pris pour la feuille) donne typiquement −60 à −70 %.
+ * Plausibilité d'un mur intérieur (cm) : hauteur 150–450, largeur 40–1 500 (docs/quality-thresholds.md). Hors bornes →
+ * `measure_implausible`. Une fausse référence (autre rectangle clair pris pour la feuille) donne typiquement −60 à −70 %
+ * (ex. 153 × 81 cm), toujours hors bornes. Bornes élargies le 2026-11-08 après la première photo réelle : un pan de mur
+ * d'entrée de 87 cm entre un angle et une armoire est courant, de même qu'un mur sous rampant de 1,5 m.
  */
-export const PLAUSIBLE_HEIGHT_CM = { min: 180, max: 450 } as const;
-export const PLAUSIBLE_WIDTH_CM = { min: 100, max: 1200 } as const;
+export const PLAUSIBLE_HEIGHT_CM = { min: 150, max: 450 } as const;
+export const PLAUSIBLE_WIDTH_CM = { min: 40, max: 1500 } as const;
 /**
  * Cohérence feuille / mur : f = grand côté de la référence (cm) / hauteur du mur rectifié (cm), c.-à-d. la part de la hauteur
  * du mur redressé occupée par la feuille. A4 : f > 14 % ⇔ mur < 2,12 m ; f < 4 % ⇔ mur > 7,4 m → `reference_scale_suspect`.

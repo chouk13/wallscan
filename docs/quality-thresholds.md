@@ -35,7 +35,7 @@ Critère bloquant (veto `qa-engineer`) : **0 fausse mesure silencieuse** = mesur
 | Distorsion radiale, k1 estimé (valeur absolue) | ≤ 0,05 | 0,05 – 0,10 | > 0,10 |
 | Bruit gaussien σ (niveaux/255) | ≤ 8 | 8 – 14 | > 14 (non testé) |
 | Surexposition (feuille saturée) | pas de saturation | ≥ 30 % de pixels saturés sur la feuille | — |
-| Plausibilité du résultat | hauteur 180 – 450 cm, largeur 100 – 1200 cm | — | hors bornes : « mesure à vérifier », envoi du devis bloqué |
+| Plausibilité du résultat | hauteur 150 – 450 cm, largeur 40 – 1500 cm (élargi le 2026-11-08 : pan de mur réel de 87 cm, murs sous rampant) | — | hors bornes : « mesure à vérifier », envoi du devis bloqué |
 
 Critères de non-régression du banc (CI, bloquants) :
 1. 0 fausse mesure silencieuse, `--n=40` minimum.

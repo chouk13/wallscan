@@ -26,12 +26,15 @@ describe("gardes du moteur v2 : plausibilité, cohérence feuille / mur, petite 
     const low = surveyOf({ W: 153, H: 81, position: [76, 50, -200] }).survey;
     expect(low.checks.warnings).toContain(WARN.measureImplausible);
     expect(low.checks.warnings).toContain(WARN.referenceScaleSuspect);
-    const wide = surveyOf({ W: 1300, H: 300, position: [650, 160, -1100] }).survey;
+    const wide = surveyOf({ W: 1600, H: 300, position: [800, 160, -1300] }).survey;
     expect(wide.checks.warnings).toContain(WARN.measureImplausible);
     const tall = surveyOf({ W: 400, H: 480, position: [200, 260, -600] }).survey;
     expect(tall.checks.warnings).toContain(WARN.measureImplausible);
-    const narrow = surveyOf({ W: 90, H: 250, position: [45, 140, -300] }).survey;
+    const narrow = surveyOf({ W: 30, H: 250, position: [15, 140, -300] }).survey;
     expect(narrow.checks.warnings).toContain(WARN.measureImplausible);
+    // Pan de mur étroit réel (87 cm entre un angle et une armoire, photo du 2026-11-08) : plausible.
+    const pier = surveyOf({ W: 87, H: 250, position: [43, 140, -300] }).survey;
+    expect(pier.checks.warnings).not.toContain(WARN.measureImplausible);
   });
 
   it("feuille > 14 % de la hauteur du mur (mur plausible de 2 m) → reference_scale_suspect seul", () => {
