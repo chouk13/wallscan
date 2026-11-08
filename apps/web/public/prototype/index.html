@@ -149,43 +149,34 @@
   #camera{background:#000}
   .cam{position:absolute;inset:0;overflow:hidden;background:#000}
   .cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
-  .cam::before,.cam::after{content:"";position:absolute;left:0;right:0;pointer-events:none;z-index:2}
-  .cam::before{top:0;height:calc(120px + var(--sat));background:linear-gradient(rgba(10,8,7,.62),transparent)}
-  .cam::after{bottom:0;height:calc(230px + var(--sab));background:linear-gradient(transparent,rgba(10,8,7,.72))}
   .camframe{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
-  .camframe .grid{display:none}
-  .camframe .corner{width:22px;height:22px;border-color:rgba(244,239,230,.7);border-width:1px}
-  .camframe .corner.tl{left:6%;top:6%}.camframe .corner.tr{right:6%;top:6%}.camframe .corner.bl{left:6%;bottom:6%}.camframe .corner.br{right:6%;bottom:6%}
-  .camframe::before,.camframe::after{content:"";position:absolute;left:50%;top:50%;background:rgba(244,239,230,.55)}
-  .camframe::before{width:14px;height:1px;margin-left:-7px}.camframe::after{width:1px;height:14px;margin-top:-7px}
-  .camtop{position:absolute;left:0;right:0;top:0;padding:calc(6px + var(--sat)) calc(10px + var(--sar)) 0 calc(6px + var(--sal));display:flex;align-items:center;gap:8px;z-index:4}
-  .camtop .back{display:inline-flex;align-items:center;gap:2px;min-height:44px;padding:0 10px 0 4px;border:0;background:none;color:var(--paper70);font-family:var(--serif);font-weight:500;font-size:10px;letter-spacing:2.4px;text-transform:uppercase;flex:0 0 auto;margin-right:auto}
-  .camtop .back .ic{width:16px;height:16px}
-  .camhint{position:absolute;left:0;right:0;top:calc(19px + var(--sat));text-align:center;z-index:3;pointer-events:none}
-  .camhint .lbl{display:block;font-size:10px;letter-spacing:3px;color:var(--gold)}
-  .camlevel{position:absolute;left:50%;top:calc(58px + var(--sat));transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;pointer-events:none}
-  .camlevel .horizon{position:relative;width:124px;height:28px}
-  .camlevel .horizon .fixed{position:absolute;left:50%;top:50%;width:1px;height:10px;margin:-5px 0 0 -.5px;background:rgba(244,239,230,.45)}
-  .camlevel .horizon .fixed::before,.camlevel .horizon .fixed::after{content:"";position:absolute;top:4px;width:10px;height:1px;background:rgba(244,239,230,.45)}
-  .camlevel .horizon .fixed::before{right:52px}.camlevel .horizon .fixed::after{left:52px}
-  .camlevel .bubble{position:absolute;left:12px;right:12px;top:50%;height:1px;margin-top:-.5px;background:var(--paper);transition:transform .12s linear;transform-origin:50% 50%}
-  .camlevel.ok .bubble{background:var(--gold);box-shadow:0 0 6px rgba(201,168,122,.6)}
-  .camlevel .lt{margin-top:2px;font-size:10px;letter-spacing:2.2px;text-transform:uppercase;color:var(--paper70);min-height:14px}
+  .camframe .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,239,230,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(244,239,230,.10) 1px,transparent 1px);background-size:33.34% 33.34%}
+  .camframe .corner{width:34px;height:34px;border-color:rgba(244,239,230,.85)}
+  .camframe .corner.tl{left:7%;top:7%}.camframe .corner.tr{right:7%;top:7%}.camframe .corner.bl{left:7%;bottom:7%}.camframe .corner.br{right:7%;bottom:7%}
+  .camtop{position:absolute;left:0;right:0;top:0;padding:calc(8px + var(--sat)) calc(12px + var(--sar)) 0 calc(12px + var(--sal));display:flex;align-items:center;gap:8px;z-index:4}
+  .camtop .back{display:inline-flex;align-items:center;gap:4px;min-height:48px;padding:0 10px 0 4px;border:0;background:none;color:var(--paper);font-family:var(--serif);font-weight:500;font-size:11px;letter-spacing:2.2px;text-transform:uppercase;flex:0 0 auto;margin-right:auto;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+  .camhint{position:absolute;left:20px;right:20px;top:calc(66px + var(--sat));text-align:center;color:var(--paper);text-shadow:0 1px 8px rgba(0,0,0,.75);z-index:3;pointer-events:none}
+  .camhint .lbl{display:block;margin-bottom:4px}
+  .camhint h2{font-size:22px;color:var(--paper);margin:0}
+  .camlevel{position:absolute;left:50%;top:calc(132px + var(--sat));transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+  .camlevel .ring{width:72px;height:72px;border:1px solid rgba(244,239,230,.55);border-radius:50%;position:relative;backdrop-filter:blur(2px)}
+  .camlevel .ring::before,.camlevel .ring::after{content:"";position:absolute;background:rgba(244,239,230,.25)}
+  .camlevel .ring::before{left:50%;top:8px;bottom:8px;width:1px}.camlevel .ring::after{top:50%;left:8px;right:8px;height:1px}
+  .camlevel .tgt{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border:1px solid var(--gold);border-radius:50%}
+  .camlevel .bubble{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--paper);transition:transform .12s linear}
+  .camlevel.ok .bubble{background:var(--gold)}
+  .camlevel .lt{margin-top:6px;font-size:12px;color:var(--paper);text-shadow:0 1px 6px rgba(0,0,0,.75);min-height:18px}
   .camlevel.ok .lt{color:var(--gold)}
-  .camlevel .link{pointer-events:auto;min-height:36px;color:var(--paper)}
-  .cambottom{position:absolute;left:0;right:0;bottom:0;padding:14px calc(28px + var(--sar)) calc(22px + var(--sab)) calc(28px + var(--sal));display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:4}
-  .camside{width:44px;height:44px;border:1px solid rgba(244,239,230,.4);background:transparent;color:var(--paper);display:inline-flex;align-items:center;justify-content:center;border-radius:0}
-  .camside .ic{width:18px;height:18px}
+  .camlevel .link{pointer-events:auto;min-height:36px}
+  .cambottom{position:absolute;left:0;right:0;bottom:0;padding:22px calc(24px + var(--sar)) calc(18px + var(--sab)) calc(24px + var(--sal));display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:4;background:linear-gradient(transparent,rgba(0,0,0,.62))}
+  .camside{width:56px;height:56px;border:1px solid var(--paper40);background:var(--plate);color:var(--paper);display:inline-flex;align-items:center;justify-content:center;border-radius:0;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  .camside .ic{width:22px;height:22px}
   .camside.ghost{visibility:hidden}
-  .shutter{width:68px;height:68px;border-radius:50%;border:1.5px solid var(--paper);background:transparent;padding:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .3s}
-  .shutter i{display:block;width:100%;height:100%;border-radius:50%;background:var(--paper);transition:transform .1s,background .3s}
+  .shutter{width:78px;height:78px;border-radius:50%;border:3px solid var(--paper);background:transparent;padding:5px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .shutter i{display:block;width:100%;height:100%;border-radius:50%;background:var(--paper);transition:transform .1s,background .2s}
   .shutter:active i{transform:scale(.86)}
   .shutter.busy i{background:var(--gold);animation:wsPulse .8s ease-in-out infinite}
   @keyframes wsPulse{0%,100%{transform:scale(1)}50%{transform:scale(.8)}}
-  .camflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .3s;z-index:5}
-  .camflash.on{opacity:.9;transition:none}
-  .camfoot{position:absolute;left:0;right:0;bottom:calc(174px + var(--sab));text-align:center;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--paper40);z-index:3;pointer-events:none}
-  @media (orientation:landscape) and (max-height:520px){.camhint{top:calc(8px + var(--sat))}.camlevel{top:auto;bottom:calc(14px + var(--sab));left:auto;right:calc(104px + var(--sar));transform:none}.cambottom{left:auto;top:0;bottom:0;flex-direction:column;justify-content:center;padding:0 calc(16px + var(--sar)) 0 16px}.cam::after{height:120px}.camfoot{display:none}}
   .liveSvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
   .liveSvg .ref{fill:rgba(201,168,122,.10);stroke:var(--gold);stroke-width:2}
   .liveSvg .ref.bad{stroke:#C96A4A;fill:rgba(201,106,74,.10)}
@@ -194,22 +185,15 @@
   .liveSvg .notch{fill:rgba(201,106,74,.18);stroke:#E0A48C;stroke-width:1.5;stroke-dasharray:5 4}
   .liveSvg .wcorner{fill:var(--char);stroke:var(--paper);stroke-width:2}
   .liveSvg text{font-family:var(--serif);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;fill:var(--paper);paint-order:stroke;stroke:rgba(0,0,0,.6);stroke-width:3px}
-  .livestat{position:absolute;left:20px;right:20px;bottom:calc(112px + var(--sab));z-index:3;display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:none}
-  .readout{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
-  .readout .ind{display:inline-flex;align-items:center;gap:7px;font-size:10px;letter-spacing:2.2px;text-transform:uppercase;color:var(--paper70)}
-  .readout .ind i{width:6px;height:6px;border-radius:50%;background:rgba(244,239,230,.28);box-shadow:0 0 0 1px rgba(244,239,230,.25)}
-  .readout .ind.ok i{background:var(--gold);box-shadow:0 0 6px rgba(201,168,122,.7)}
-  .readout .ind.warn i{background:#C96A4A;box-shadow:0 0 6px rgba(201,106,74,.6)}
-  .readout .ind.ok{color:var(--paper)}
-  .livestat .hint{position:static;left:auto;right:auto;top:auto;margin:0;font-size:17px;line-height:1.3;color:var(--paper);text-align:center;text-shadow:0 1px 8px rgba(0,0,0,.7);max-width:34ch;font-weight:300}
-  .livestat .hint.warn{color:#E8B9A6}
+  .livestat{position:absolute;left:16px;right:16px;bottom:calc(136px + var(--sab));z-index:3;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+  .livestat .chip{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:7px 12px;background:rgba(26,22,20,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(244,239,230,.18);color:var(--paper);font-size:13px;line-height:1.3}
+  .livestat .chip i{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:rgba(244,239,230,.45)}
+  .livestat .chip.ok i{background:var(--gold)}
+  .livestat .chip.warn i{background:#C96A4A}
+  .livestat .chip.ok{color:var(--paper)}
   .shutter.ready{border-color:var(--gold)}
   .shutter.ready i{background:var(--gold)}
-  .liveSvg .wline{stroke:rgba(244,239,230,.6);stroke-width:1;stroke-dasharray:4 4}
-  .liveSvg .wquad{stroke-width:1}
-  .liveSvg .wcorner{r:5}
-  .liveSvg .ref{stroke-width:1.5;fill:rgba(201,168,122,.06)}
-  @media (orientation:landscape) and (max-height:520px){.livestat{left:16px;right:120px;bottom:calc(12px + var(--sab));align-items:flex-start}.livestat .hint{text-align:left}}
+  @media (orientation:landscape) and (max-height:520px){.livestat{left:16px;right:120px;bottom:calc(12px + var(--sab));align-items:flex-start}}
   .aroverlay{position:fixed;inset:0;z-index:50;background:transparent;color:var(--paper);font-family:var(--serif)}
   .aroverlay[hidden]{display:none}
   .aroverlay canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
@@ -622,10 +606,10 @@
     <button class="back" id="camBack" type="button"><svg class="ic"><use href="#i-back"/></svg>Préparer</button>
     <button class="closex embed-only" type="button" aria-label="Fermer"><svg class="ic"><use href="#i-close"/></svg></button>
   </header>
-  <div class="camhint"><span class="lbl">01 · Photo</span></div>
-  <div class="camlevel" id="camLevel" aria-live="polite"><div class="horizon"><i class="fixed"></i><i class="bubble" id="camBubble"></i></div><span class="lt" id="camLevelTxt"></span><button class="link" id="camLevelBtn" type="button" style="display:none">Activer le niveau →</button></div>
-  <p class="camfoot" id="camFoot"></p>
-  <div class="livestat" id="liveStat" aria-live="polite"><div class="readout" id="readout"></div><p class="hint" id="liveHint">Tout le mur, du plafond au sol.</p></div>
+  <div class="camhint"><span class="lbl">Étape 1 · Photo</span><h2>Tout le mur, du plafond au sol.</h2></div>
+  <div class="camlevel" id="camLevel" aria-live="polite"><div class="ring"><i class="tgt"></i><i class="bubble" id="camBubble"></i></div><span class="lt" id="camLevelTxt">Niveau : en attente du capteur</span><button class="link" id="camLevelBtn" type="button" style="display:none">Activer le niveau →</button></div>
+  <p class="camfoot" id="camFoot">Tenez-vous en face, au milieu. Pas de ×0,5.</p>
+  <div class="livestat" id="liveStat" aria-live="polite"></div>
   <div class="cambottom">
     <button class="camside" id="camImport" type="button" aria-label="Importer une photo existante"><svg class="ic"><use href="#i-image"/></svg></button>
     <button class="shutter" id="shutter" type="button" aria-label="Prendre la photo"><i></i></button>
@@ -953,9 +937,9 @@ const LEVELS=[["level","bubble","levelTxt","levelBtn"],["camLevel","camBubble","
 const lvlEach=f=>LEVELS.forEach(([a,b,c,d])=>f($(a),$(b),$(c),$(d)));
 function onOrient(e){if(e.beta==null&&e.gamma==null)return;clearTimeout(levelTimer);const roll=e.gamma||0,pitch=(e.beta||0)-90;const cl=v=>clamp(v,-30,30);const ok=Math.abs(roll)<2.5&&Math.abs(pitch)<6;
   const txt=ok?"Téléphone droit":Math.abs(roll)>=2.5?(roll>0?"Penchez vers la gauche":"Penchez vers la droite"):(pitch>0?"Redressez le haut du téléphone":"Inclinez le téléphone vers vous");
-  lvlEach((ring,bub,lt)=>{if(ring.id==="camLevel"){bub.style.transform=`translateY(${(cl(pitch)/30*10).toFixed(1)}px) rotate(${cl(roll).toFixed(1)}deg)`;lt.textContent=ok?"Niveau":`${Math.abs(roll).toFixed(0)}° · ${Math.abs(roll)>=2.5?(roll>0?"gauche":"droite"):(pitch>0?"haut":"vers vous")}`;}else{bub.style.transform=`translate(${cl(roll)/30*44}px,${cl(pitch)/30*44}px)`;lt.textContent=txt;}ring.classList.toggle("ok",ok);});}
+  lvlEach((ring,bub,lt)=>{const r=ring.id==="camLevel"?26:44;bub.style.transform=`translate(${cl(roll)/30*r}px,${cl(pitch)/30*r}px)`;ring.classList.toggle("ok",ok);lt.textContent=txt;});}
 function bindOrient(){if(levelBound)return;levelBound=true;window.addEventListener("deviceorientation",onOrient);}
-function startLevel(){lvlEach((ring,bub,lt)=>{ring.classList.remove("ok");lt.textContent=ring.id==="camLevel"?"":"Niveau : en attente du capteur";});if(!("DeviceOrientationEvent" in window)){lvlEach((r,b,lt)=>lt.textContent=r.id==="camLevel"?"":"Niveau indisponible sur cet appareil");return;}
+function startLevel(){lvlEach((ring,bub,lt)=>{ring.classList.remove("ok");lt.textContent="Niveau : en attente du capteur";});if(!("DeviceOrientationEvent" in window)){lvlEach((r,b,lt)=>lt.textContent="Niveau indisponible sur cet appareil");return;}
   const needBtn=()=>lvlEach((r,b,lt,btn)=>{btn.style.display="";lt.textContent="Niveau : autorisation requise";});
   if(typeof DeviceOrientationEvent.requestPermission==="function"&&!levelBound){DeviceOrientationEvent.requestPermission().then(st=>{if(st==="granted")bindOrient();else needBtn();}).catch(needBtn);}
   else bindOrient();clearTimeout(levelTimer);levelTimer=setTimeout(()=>{lvlEach((r,b,lt)=>{if(lt.textContent.startsWith("Niveau : en attente"))lt.textContent="Niveau indisponible ici";});},2500);}
@@ -974,7 +958,7 @@ function stopCamera(){liveStop();if(CAM.stream)CAM.stream.getTracks().forEach(t=
 function camFallback(e){stopCamera();show("shoot");toast(e&&e.name==="NotAllowedError"?"Caméra refusée : autorisez-la dans le navigateur ou utilisez l'appareil photo du téléphone":"Viseur indisponible ici : utilisez l'appareil photo du téléphone");}
 async function openCamera(){if(!camOK()){camFallback(null);return;}if(CAM.opening)return;CAM.opening=true;
   try{stopCamera();CAM.stream=await getStream(true);CAM.track=CAM.stream.getVideoTracks()[0];const v=$("camVideo");v.srcObject=CAM.stream;await v.play().catch(()=>{});try{localStorage.setItem("wsCamOK","1");}catch(_){}
-    show("camera");layoutCam();liveStart();const st=CAM.track.getSettings?CAM.track.getSettings():{};$("camFoot").textContent=MODE==="pro"&&st.width?`Aperçu ${st.width} × ${st.height}`:"";}
+    show("camera");layoutCam();liveStart();const st=CAM.track.getSettings?CAM.track.getSettings():{};$("camFoot").textContent=`Tenez-vous en face, au milieu. Pas de ×0,5.${MODE==="pro"&&st.width?` · Aperçu ${st.width} × ${st.height}`:""}`;}
   catch(e){console.warn("camera",e);camFallback(e);}
   finally{CAM.opening=false;}}
 function layoutCam(){const v=$("camVideo"),box=$("camBox"),fr=$("camFrame");if(!v.videoWidth||!box.clientWidth)return;const W=box.clientWidth,H=box.clientHeight,r=v.videoWidth/v.videoHeight;let w=W,h=W/r;if(h>H){h=H;w=H*r;}Object.assign(fr.style,{width:w+"px",height:h+"px",left:(W-w)/2+"px",top:(H-h)/2+"px"});}
@@ -1092,7 +1076,7 @@ function liveWorker(){if(LIVE.worker!==null)return LIVE.worker;const el=document
   try{const w=new Worker(URL.createObjectURL(new Blob([el.textContent,"\n",LIVE_WORKER_CODE],{type:"text/javascript"})));
     w.onmessage=e=>liveResult(e.data);w.onerror=err=>{console.warn("live worker",err.message||err);LIVE.busy=false;LIVE.fails++;if(LIVE.fails>3){LIVE.on=false;liveStatus(null);}else liveSchedule(400);};
     LIVE.worker=w;return w;}catch(e){console.warn("live worker",e);LIVE.worker=false;return false;}}
-function liveStart(){liveStatus(null);if(!liveWorker())return;LIVE.on=true;LIVE.last=null;LIVE.fails=0;liveDraw();liveSchedule(250);}
+function liveStart(){if(!liveWorker())return;LIVE.on=true;LIVE.last=null;LIVE.fails=0;liveDraw();liveSchedule(250);}
 function liveStop(){LIVE.on=false;clearTimeout(LIVE.timer);LIVE.pending=null;LIVE.busy=false;}
 function liveSchedule(ms){clearTimeout(LIVE.timer);LIVE.timer=setTimeout(liveTick,ms);}
 function liveTick(){if(!LIVE.on)return;const v=$("camVideo");if(!CAM.stream||!v.videoWidth||LIVE.busy||document.hidden){liveSchedule(200);return;}
@@ -1105,27 +1089,27 @@ function liveResult(r){LIVE.busy=false;if(!LIVE.on||!LIVE.pending||r.id!==LIVE.p
   LIVE.last={...r,w:LIVE.pending.w,h:LIVE.pending.h,vw:LIVE.pending.vw,vh:LIVE.pending.vh,at:Date.now()};liveDraw();liveStatus(liveAssess(LIVE.last));
   if(MODE==="pro")$("camFoot").textContent=`Analyse ${Math.round(r.ms)} ms · image ${LIVE.last.w} × ${LIVE.last.h} · vidéo ${LIVE.last.vw} × ${LIVE.last.vh}`;
   liveSchedule(Math.max(80,Math.min(600,r.ms*0.5)));}
-// Évaluation : quatre témoins (référence, plafond, sol, bords) et une seule consigne courte, la plus utile. Jamais bloquant.
-function liveAssess(L){const long=Math.max(L.w,L.h);const st={ref:"",ceil:"",floor:"",edges:"",hint:"",hintCls:""};const hints=[];
+// Évaluation : textes courts, jamais bloquants. Retourne [{cls, text}] ou null quand rien n'est encore analysé.
+function liveAssess(L){const out=[];const long=Math.max(L.w,L.h);
   if(L.ref){const q=L.ref.quad;const sides=[Math.hypot(q[1].x-q[0].x,q[1].y-q[0].y),Math.hypot(q[2].x-q[1].x,q[2].y-q[1].y),Math.hypot(q[3].x-q[2].x,q[3].y-q[2].y),Math.hypot(q[0].x-q[3].x,q[0].y-q[3].y)];
     const short=Math.min(...sides),aspect=Math.max(...sides)/Math.max(1,short);const nominal=L.ref.kind==="mire"?27.7/19:29.7/21;const skew=Math.abs(aspect/nominal-1);
     const oppo=Math.max(Math.abs(sides[0]-sides[2])/Math.max(sides[0],sides[2]),Math.abs(sides[1]-sides[3])/Math.max(sides[1],sides[3]));
     const name=L.ref.kind==="mire"?"Mire":"Feuille";L.refBad=false;
-    if(short<long*0.03){st.ref="warn";L.refBad=true;hints.push([2,`${name} trop petite — rapprochez-vous.`]);}
-    else if(skew>0.08||oppo>0.12){st.ref="warn";L.refBad=true;hints.push([2,`${name} vue de biais — placez-vous bien en face.`]);}
+    if(short<long*0.03){out.push({cls:"warn",text:`${name} trop petite dans l'image : rapprochez-vous`});L.refBad=true;}
+    else if(skew>0.08||oppo>0.12){out.push({cls:"warn",text:`${name} vue de biais ou pas à plat : mettez-vous bien en face`});L.refBad=true;}
     else{let placed=true;if(L.lines&&L.lines.left&&L.lines.right){const cx=(q[0].x+q[1].x+q[2].x+q[3].x)/4;const lx=(L.lines.left.x1+L.lines.left.x2)/2,rx=(L.lines.right.x1+L.lines.right.x2)/2;const span=Math.abs(rx-lx);if(span>40&&(Math.abs(cx-(lx+rx)/2)>span*0.3))placed=false;}
-      st.ref="ok";if(!placed)hints.push([3,`${name} détectée — déplacez-la vers le milieu du mur.`]);}}
-  else hints.push([4,"Collez la feuille ou la mire à plat sur le mur, face à vous."]);
-  const ln=L.lines||{};const noC=!ln.ceiling,noF=!ln.floor;st.ceil=noC?"warn":"ok";st.floor=noF?"warn":"ok";
-  if(noC&&noF)hints.push([1,"Reculez : plafond et sol hors cadre."]);else if(noC)hints.push([1,"Reculez ou relevez : plafond hors cadre."]);else if(noF)hints.push([1,"Baissez le téléphone : sol hors cadre."]);
-  const noL=!ln.left,noR=!ln.right;st.edges=L.quad?"ok":(noL&&noR)?"":"warn";
-  if(!L.quad){if(noL&&noR)hints.push([2,"Cadrez le mur entier, bords compris."]);else if(noL||noR)hints.push([2,`Bord ${noL?"gauche":"droit"} non vu — décalez-vous.`]);}
-  if(L.notch)hints.push([5,"Décrochement au plafond repéré — proposé après la photo."]);
-  L.ready=!!(L.ref&&!L.refBad&&L.quad&&!noC&&!noF);
-  hints.sort((a,b)=>a[0]-b[0]);st.hint=L.ready?"Prêt — déclenchez.":hints.length?hints[0][1]:"";st.hintCls=L.ready?"ok":hints.length&&hints[0][0]<=2?"warn":"";return st;}
-function liveStatus(st){const ro=$("readout"),hint=$("liveHint");if(!st){ro.innerHTML="";hint.textContent="Tout le mur, du plafond au sol.";hint.className="hint";$("shutter").classList.remove("ready");return;}
-  const ind=(cls,label)=>`<span class="ind ${cls}"><i></i>${label}</span>`;ro.innerHTML=ind(st.ref,"Référence")+ind(st.ceil,"Plafond")+ind(st.floor,"Sol")+ind(st.edges,"Bords");
-  hint.textContent=st.hint;hint.className="hint"+(st.hintCls==="warn"?" warn":"");$("shutter").classList.toggle("ready",!!(LIVE.last&&LIVE.last.ready));}
+      out.push(placed?{cls:"ok",text:`${name} détectée, bien placée`}:{cls:"warn",text:`${name} détectée : déplacez-la vers le milieu du mur`});}}
+  else out.push({cls:"",text:"Feuille ou mire non détectée : collez-la à plat sur le mur, face à vous"});
+  const ln=L.lines||{};const noC=!ln.ceiling,noF=!ln.floor;
+  if(noC&&noF)out.push({cls:"warn",text:"Plafond et sol hors cadre : reculez"});else if(noC)out.push({cls:"warn",text:"Plafond hors cadre : reculez ou relevez le téléphone"});else if(noF)out.push({cls:"warn",text:"Sol hors cadre : baissez le téléphone"});
+  const noL=!ln.left,noR=!ln.right;
+  if(L.quad)out.push({cls:"ok",text:"Bords du mur trouvés : coins proposés"});
+  if(L.notch)out.push({cls:"",text:"Décrochement au plafond détecté (poutre ?) : il sera proposé après la photo"});
+  else if(noL&&noR)out.push({cls:"",text:"Bords du mur non trouvés : cadrez le mur entier"});
+  else if(noL||noR)out.push({cls:"",text:`Bord ${noL?"gauche":"droit"} non vu : décalez-vous ou reculez`});
+  L.ready=!!(L.ref&&!L.refBad&&L.quad&&!noC&&!noF);return out;}
+function liveStatus(items){const box=$("liveStat");if(!items){box.innerHTML="";$("camFoot").style.display="";$("shutter").classList.remove("ready");return;}
+  $("camFoot").style.display=MODE==="pro"?"":"none";box.innerHTML=items.map(i=>`<span class="chip ${i.cls}"><i></i>${i.text}</span>`).join("");$("shutter").classList.toggle("ready",!!(LIVE.last&&LIVE.last.ready));}
 function liveDraw(){const svg=$("liveSvg");const L=LIVE.last;if(!L||!LIVE.on){svg.innerHTML="";return;}const fr=$("camFrame");const fw=fr.clientWidth||1,fh=fr.clientHeight||1;const sx=fw/L.w,sy=fh/L.h;
   svg.setAttribute("viewBox",`0 0 ${fw} ${fh}`);const P=p=>`${(p.x*sx).toFixed(1)},${(p.y*sy).toFixed(1)}`;let out="";
   const ln=L.lines||{};for(const k of ["ceiling","floor","left","right"]){const l=ln[k];if(l)out+=`<line class="wline" x1="${(l.x1*sx).toFixed(1)}" y1="${(l.y1*sy).toFixed(1)}" x2="${(l.x2*sx).toFixed(1)}" y2="${(l.y2*sy).toFixed(1)}"/>`;}
