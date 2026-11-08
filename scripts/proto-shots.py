@@ -45,13 +45,22 @@ async def run(b, name, w, h, mode, errs):
     await pg.click("#toShoot"); await pg.wait_for_timeout(2300)
     cam = await pg.evaluate("document.getElementById('camera').classList.contains('active')")
     if cam:
+        # Guidage en direct : attendre un premier résultat du worker (ou 6 s), puis capturer l'écran avec l'overlay
+        try:
+            await pg.wait_for_function("LIVE.last!==null", timeout=6000)
+        except Exception:
+            print(f"{tag} viseur: pas de résultat du guidage en direct (worker absent ?)")
+        await pg.wait_for_timeout(400)
+        live = await pg.evaluate("LIVE.last?{ms:Math.round(LIVE.last.ms),ref:LIVE.last.ref&&LIVE.last.ref.kind,quad:!!LIVE.last.quad,lines:LIVE.last.lines&&Object.fromEntries(Object.entries(LIVE.last.lines).map(([k,v])=>[k,!!v])),ready:!!LIVE.last.ready,status:[...document.querySelectorAll('#liveStat .chip')].map(c=>c.textContent)}:null")
+        print(f"{tag} guidage: {live}")
         await pg.screenshot(path=f"{OUT}/{tag}-1d-camera.png")
         await pg.click("#shutter")
         await pg.wait_for_function("document.getElementById('analyze').classList.contains('active')", timeout=15000)
         await pg.wait_for_timeout(2600)
         await pg.screenshot(path=f"{OUT}/{tag}-1e-camera-shot.png")
-        info = await pg.evaluate("({w:S.img.w,h:S.img.h,ow:S.orig.width,oh:S.orig.height,ref:!!S.refQuad,quad:!!S.quad})")
-        print(f"{tag} viseur: photo {info['ow']}×{info['oh']} (travail {info['w']}×{info['h']}), feuille détectée={info['ref']}, coins={info['quad']}")
+        info = await pg.evaluate("({w:S.img.w,h:S.img.h,ow:S.orig.width,oh:S.orig.height,ref:!!S.refQuad,refKind:S.refKind,quad:!!S.quad,proposed:S.wallProposed,fromLive:!!S.wallFromLive,partial:S.wallPartial,wall:document.getElementById('wallStatus').textContent})")
+        print(f"{tag} viseur: photo {info['ow']}×{info['oh']} (travail {info['w']}×{info['h']}), référence={info['ref']} ({info['refKind']}), coins proposés={info['proposed']} (viseur={info['fromLive']}), partiel={info['partial']}")
+        print(f"{tag} statut mur: {info['wall'][:160]}")
         await pg.click("#backShoot"); await pg.wait_for_timeout(900)
         assert await pg.evaluate("document.getElementById('camera').classList.contains('active')"), "retour vers le viseur attendu"
         await pg.click("#camBack"); await pg.wait_for_timeout(200)
@@ -131,6 +140,9 @@ async def main():
     async with async_playwright() as p:
         fake = os.environ.get("FAKE_CAMERA", "1") != "0"
         args = ["--no-sandbox"] + (["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] if fake else [])
+        # FAKE_CAMERA_FILE=/chemin/clip.y4m : la caméra factice rejoue une vraie scène (photo réelle convertie en Y4M)
+        if fake and os.environ.get("FAKE_CAMERA_FILE"):
+            args.append(f"--use-file-for-fake-video-capture={os.environ['FAKE_CAMERA_FILE']}")
         b = await p.chromium.launch(executable_path="/usr/bin/google-chrome", args=args)
         errs = []
         for name, (w, h) in VIEWPORTS.items():

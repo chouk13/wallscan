@@ -7,9 +7,11 @@ export const A4_CM = { w: 21.0, h: 29.7 } as const;
 export const MIRE_OUTER_CM = { w: 19.0, h: 27.7 } as const;
 
 /**
- * Géométrie de la mire (cm). Repère « cadre » : origine au coin haut-gauche du bord EXTÉRIEUR du cadre noir, mire en portrait.
+ * Géométrie de la mire IMPRIMÉE (cm) — `mire-wallscan.pdf` v1, vérifiée au banc d'impression (`scripts/build-mire.py`) et sur la
+ * première photo réelle du 2026-11-08. Repère « cadre » : origine au coin haut-gauche du bord EXTÉRIEUR du cadre noir, mire en portrait.
  * Feuille A4 portrait 21 × 29,7 ; cadre extérieur 19 × 27,7 à 1 cm des bords de la feuille, épaisseur 1 cm ;
- * quatre carrés de repère 2 × 2 à 3 cm des bords extérieurs du cadre ; code 4 × 4 cellules de 1,5 cm centré.
+ * quatre repères de 1,5 cm (un carré en haut à gauche, trois disques) à 2 cm des bords extérieurs du cadre (centres à 2,75 cm) ;
+ * code 5 × 5 cellules de 1 cm centré sur le cadre, motif fixe `MIRE_CODE_PATTERN`.
  */
 export const MIRE_LAYOUT = {
   sheetW: 21,
@@ -18,36 +20,33 @@ export const MIRE_LAYOUT = {
   frameW: 19,
   frameH: 27.7,
   frameT: 1,
-  cornerSquare: 2,
-  cornerInset: 3,
-  codeCell: 1.5,
-  codeCells: 4,
+  /** Côté des repères d'angle (cm) et retrait de leur bord extérieur depuis le bord extérieur du cadre (cm). */
+  cornerSquare: 1.5,
+  cornerInset: 2,
+  codeCell: 1,
+  codeCells: 5,
 } as const;
 
-/** Cellules du code (ligne par ligne, 16) : coins = (noir, blanc, blanc, blanc) pour l'orientation, 12 cellules = id 6 bits + complément. */
-export const MIRE_PAYLOAD_CELLS = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14] as const;
+/** Motif du code imprimé (25 cellules, ligne par ligne depuis le haut-gauche en portrait, 1 = noir). */
+export const MIRE_CODE_PATTERN = "1011001001110100010110111";
+/** Nombre maximal de cellules divergentes tolérées à la lecture (bruit, flou). */
+export const MIRE_CODE_MAX_ERRORS = 2;
 
-export function mireCodeCells(code: number): boolean[] {
-  const cells = new Array<boolean>(16).fill(false);
-  cells[0] = true;
-  for (let b = 0; b < 6; b++) {
-    const bit = ((code >> b) & 1) === 1;
-    cells[MIRE_PAYLOAD_CELLS[b]] = bit;
-    cells[MIRE_PAYLOAD_CELLS[b + 6]] = !bit;
-  }
-  return cells;
+/** Cellules du code pour la mire v1 : motif fixe (l'identifiant est ignoré, une seule mire est imprimée). */
+export function mireCodeCells(_code = 0): boolean[] {
+  return Array.from(MIRE_CODE_PATTERN, (ch) => ch === "1");
 }
 
-/** Décode 16 cellules (true = noir) ; `null` si l'orientation ou le complément ne correspondent pas. */
+/**
+ * Décode 25 cellules (true = noir) lues dans l'orientation du quad testé : `0` si le motif imprimé est reconnu
+ * (≤ `MIRE_CODE_MAX_ERRORS` cellules divergentes), `null` sinon. Le motif diffère de ses trois rotations d'au moins 9 cellules,
+ * donc l'orientation retenue par `decodeMire` est sans ambiguïté.
+ */
 export function decodeMireCells(cells: readonly boolean[]): number | null {
-  if (!cells[0] || cells[3] || cells[12] || cells[15]) return null;
-  let code = 0;
-  for (let b = 0; b < 6; b++) {
-    const bit = cells[MIRE_PAYLOAD_CELLS[b]];
-    if (cells[MIRE_PAYLOAD_CELLS[b + 6]] === bit) return null;
-    if (bit) code |= 1 << b;
-  }
-  return code;
+  if (cells.length !== MIRE_CODE_PATTERN.length) return null;
+  let errors = 0;
+  for (let i = 0; i < cells.length; i++) if (cells[i] !== (MIRE_CODE_PATTERN[i] === "1")) errors++;
+  return errors <= MIRE_CODE_MAX_ERRORS ? 0 : null;
 }
 
 /** Incertitude (px, 1σ) sur les coins de la référence selon la méthode (§2.3 étape 8). */

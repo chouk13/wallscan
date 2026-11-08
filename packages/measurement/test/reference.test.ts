@@ -7,12 +7,23 @@ import { quadCenter } from "../src/segment.js";
 import { quadErr, rendered } from "./scenes.js";
 
 describe("code de la mire", () => {
-  it("encodage / décodage pour tous les identifiants, rejets", () => {
-    for (let code = 0; code < 64; code++) expect(decodeMireCells(mireCodeCells(code))).toBe(code);
-    const cells = mireCodeCells(22);
-    expect(decodeMireCells(cells.map((v, i) => (i === 0 ? false : v)))).toBeNull(); // coin d'orientation manquant
-    expect(decodeMireCells(cells.map((v, i) => (i === 3 ? true : v)))).toBeNull();
-    expect(decodeMireCells(cells.map((v, i) => (i === 1 ? !v : v)))).toBeNull(); // complément violé
+  it("motif imprimé reconnu, rotations rejetées, tolérance de 2 cellules", () => {
+    const cells = mireCodeCells();
+    expect(cells).toHaveLength(25);
+    expect(decodeMireCells(cells)).toBe(0);
+    expect(decodeMireCells(cells.map((v, i) => (i < 2 ? !v : v)))).toBe(0); // 2 erreurs tolérées
+    expect(decodeMireCells(cells.map((v, i) => (i < 3 ? !v : v)))).toBeNull(); // 3 erreurs : rejet
+    expect(decodeMireCells(cells.slice(0, 16))).toBeNull();
+    // Les trois rotations du motif diffèrent d'au moins 9 cellules : jamais décodées à tort.
+    const rot = (c: boolean[]): boolean[] => c.map((_, i) => c[(i % 5) * 5 + (4 - Math.floor(i / 5))]);
+    let r = cells;
+    for (let k = 0; k < 3; k++) {
+      r = rot(r);
+      let diff = 0;
+      for (let i = 0; i < 25; i++) if (r[i] !== cells[i]) diff++;
+      expect(diff).toBeGreaterThanOrEqual(9);
+      expect(decodeMireCells(r)).toBeNull();
+    }
   });
 });
 
@@ -22,7 +33,7 @@ describe("détection de la référence", () => {
     const d = detectReference(s.work)!;
     expect(d).not.toBeNull();
     expect(d.kind).toBe("mire");
-    expect(d.code).toBe(37);
+    expect(d.code).toBe(0);
     expect(d.confidence).toBeGreaterThan(0.7);
     expect(quadErr(d.quad, s.refQuad!)).toBeLessThan(0.5);
     // Avec indication de nature et de position.
@@ -36,11 +47,11 @@ describe("détection de la référence", () => {
     const s = rendered({ reference: "mire", referenceLandscape: true, code: 5, yawDeg: 8, pitchDeg: 5, rollDeg: 4 });
     const d = detectReference(s.work)!;
     expect(d.kind).toBe("mire");
-    expect(d.code).toBe(5);
+    expect(d.code).toBe(0);
     expect(quadErr(d.quad, s.refQuad!)).toBeLessThan(0.6);
     const r = rendered({ reference: "mire", referenceAngleDeg: 2, code: 63, rollDeg: -6 });
     const dr = detectReference(r.work)!;
-    expect(dr.code).toBe(63);
+    expect(dr.code).toBe(0);
     expect(quadErr(dr.quad, r.refQuad!)).toBeLessThan(0.6);
   });
 
@@ -69,7 +80,7 @@ describe("détection de la référence", () => {
 
   it("décodage direct : quad dégénéré, contraste insuffisant", () => {
     const s = rendered({ reference: "mire", code: 9 });
-    expect(decodeMire(s.work, s.refQuad!)!.code).toBe(9);
+    expect(decodeMire(s.work, s.refQuad!)!.code).toBe(0);
     const degenerate: Quad = [{ x: 10, y: 10 }, { x: 10, y: 10 }, { x: 10, y: 10 }, { x: 10, y: 10 }];
     expect(decodeMire(s.work, degenerate)).toBeNull();
     const wall: Quad = [{ x: 300, y: 300 }, { x: 380, y: 300 }, { x: 380, y: 416 }, { x: 300, y: 416 }];
@@ -77,5 +88,11 @@ describe("détection de la référence", () => {
     // Quad décalé d'un demi-cadre : échantillons incohérents.
     const shifted = s.refQuad!.map((p) => ({ x: p.x + 6, y: p.y })) as Quad;
     expect(decodeMire(s.work, shifted)).toBeNull();
+    // Cadre correct mais code effacé (feuille blanche au centre) : le motif ne correspond pas → rejet.
+    const blank = { width: s.work.width, height: s.work.height, data: new Uint8ClampedArray(s.work.data) };
+    const c = quadCenter(s.refQuad!);
+    const r = Math.hypot(s.refQuad![1].x - s.refQuad![0].x, s.refQuad![1].y - s.refQuad![0].y) * 0.2;
+    for (let y = Math.floor(c.y - r); y <= c.y + r; y++) for (let x = Math.floor(c.x - r); x <= c.x + r; x++) blank.data[y * blank.width + x] = 250;
+    expect(decodeMire(blank, s.refQuad!)).toBeNull();
   });
 });

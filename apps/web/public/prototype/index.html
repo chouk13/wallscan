@@ -177,9 +177,25 @@
   .shutter:active i{transform:scale(.86)}
   .shutter.busy i{background:var(--gold);animation:wsPulse .8s ease-in-out infinite}
   @keyframes wsPulse{0%,100%{transform:scale(1)}50%{transform:scale(.8)}}
+  .liveSvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .liveSvg .ref{fill:rgba(201,168,122,.10);stroke:var(--gold);stroke-width:2}
+  .liveSvg .ref.bad{stroke:#C96A4A;fill:rgba(201,106,74,.10)}
+  .liveSvg .wline{stroke:rgba(244,239,230,.75);stroke-width:1.5;stroke-dasharray:6 5}
+  .liveSvg .wquad{fill:none;stroke:var(--paper);stroke-width:1.5}
+  .liveSvg .wcorner{fill:var(--char);stroke:var(--paper);stroke-width:2}
+  .liveSvg text{font-family:var(--serif);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;fill:var(--paper);paint-order:stroke;stroke:rgba(0,0,0,.6);stroke-width:3px}
+  .livestat{position:absolute;left:16px;right:16px;bottom:calc(136px + var(--sab));z-index:3;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+  .livestat .chip{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:7px 12px;background:rgba(26,22,20,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(244,239,230,.18);color:var(--paper);font-size:13px;line-height:1.3}
+  .livestat .chip i{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:rgba(244,239,230,.45)}
+  .livestat .chip.ok i{background:var(--gold)}
+  .livestat .chip.warn i{background:#C96A4A}
+  .livestat .chip.ok{color:var(--paper)}
+  .shutter.ready{border-color:var(--gold)}
+  .shutter.ready i{background:var(--gold)}
+  @media (orientation:landscape) and (max-height:520px){.livestat{left:16px;right:120px;bottom:calc(12px + var(--sab));align-items:flex-start}}
   .camflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .3s;z-index:5}
   .camflash.on{opacity:.9;transition:none}
-  .camfoot{position:absolute;left:0;right:0;bottom:calc(112px + var(--sab));text-align:center;font-size:12px;color:var(--paper70);text-shadow:0 1px 6px rgba(0,0,0,.75);z-index:3;pointer-events:none}
+  .camfoot{position:absolute;left:0;right:0;bottom:calc(112px + var(--sab));z-index:2;text-align:center;font-size:12px;color:var(--paper70);text-shadow:0 1px 6px rgba(0,0,0,.75);z-index:3;pointer-events:none}
   @media (orientation:landscape) and (max-height:520px){.camhint{top:calc(10px + var(--sat));left:80px;right:80px}.camhint h2{font-size:16px}.camlevel{top:auto;bottom:calc(16px + var(--sab));left:auto;right:calc(110px + var(--sar));transform:none}.cambottom{left:auto;top:0;bottom:0;flex-direction:column;justify-content:center;padding:0 calc(16px + var(--sar)) 0 16px;background:linear-gradient(90deg,transparent,rgba(0,0,0,.6))}.camfoot{display:none}}
   #shoot .wrap{padding-bottom:calc(20px + var(--sab))}
 
@@ -536,7 +552,7 @@
 <section id="camera" class="screen atelier">
   <div class="cam" id="camBox">
     <video id="camVideo" autoplay playsinline muted></video>
-    <div class="camframe" id="camFrame"><div class="grid"></div><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i></div>
+    <div class="camframe" id="camFrame"><div class="grid"></div><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><svg class="liveSvg" id="liveSvg" aria-hidden="true"></svg></div>
     <div class="camflash" id="camFlash"></div>
   </div>
   <header class="camtop">
@@ -546,6 +562,7 @@
   <div class="camhint"><span class="lbl">Étape 1 · Photo</span><h2>Tout le mur, du plafond au sol.</h2></div>
   <div class="camlevel" id="camLevel" aria-live="polite"><div class="ring"><i class="tgt"></i><i class="bubble" id="camBubble"></i></div><span class="lt" id="camLevelTxt">Niveau : en attente du capteur</span><button class="link" id="camLevelBtn" type="button" style="display:none">Activer le niveau →</button></div>
   <p class="camfoot" id="camFoot">Tenez-vous en face, au milieu. Pas de ×0,5.</p>
+  <div class="livestat" id="liveStat" aria-live="polite"></div>
   <div class="cambottom">
     <button class="camside" id="camImport" type="button" aria-label="Importer une photo existante"><svg class="ic"><use href="#i-image"/></svg></button>
     <button class="shutter" id="shutter" type="button" aria-label="Prendre la photo"><i></i></button>
@@ -886,15 +903,15 @@ const CAM={stream:null,track:null,opening:false};
 const camOK=()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.isSecureContext);
 async function getStream(hi){const base={facingMode:{ideal:"environment"}};const tries=hi?[{...base,width:{ideal:4096},height:{ideal:2304}},{...base,width:{ideal:1920},height:{ideal:1080}},base]:[{...base,width:{ideal:1280},height:{ideal:720}},base];
   let err=null;for(const video of tries){try{return await navigator.mediaDevices.getUserMedia({video,audio:false});}catch(e){err=e;if(e&&(e.name==="NotAllowedError"||e.name==="SecurityError"||e.name==="NotFoundError"))break;}}throw err||new Error("no camera");}
-function stopCamera(){if(CAM.stream)CAM.stream.getTracks().forEach(t=>t.stop());CAM.stream=null;CAM.track=null;$("camVideo").srcObject=null;const hv=$("homeVideo");hv.srcObject=null;hv.classList.remove("on");}
+function stopCamera(){liveStop();if(CAM.stream)CAM.stream.getTracks().forEach(t=>t.stop());CAM.stream=null;CAM.track=null;$("camVideo").srcObject=null;const hv=$("homeVideo");hv.srcObject=null;hv.classList.remove("on");}
 function camFallback(e){stopCamera();show("shoot");toast(e&&e.name==="NotAllowedError"?"Caméra refusée : autorisez-la dans le navigateur ou utilisez l'appareil photo du téléphone":"Viseur indisponible ici : utilisez l'appareil photo du téléphone");}
 async function openCamera(){if(!camOK()){camFallback(null);return;}if(CAM.opening)return;CAM.opening=true;
   try{stopCamera();CAM.stream=await getStream(true);CAM.track=CAM.stream.getVideoTracks()[0];const v=$("camVideo");v.srcObject=CAM.stream;await v.play().catch(()=>{});try{localStorage.setItem("wsCamOK","1");}catch(_){}
-    show("camera");layoutCam();const st=CAM.track.getSettings?CAM.track.getSettings():{};$("camFoot").textContent=`Tenez-vous en face, au milieu. Pas de ×0,5.${MODE==="pro"&&st.width?` · Aperçu ${st.width} × ${st.height}`:""}`;}
+    show("camera");layoutCam();liveStart();const st=CAM.track.getSettings?CAM.track.getSettings():{};$("camFoot").textContent=`Tenez-vous en face, au milieu. Pas de ×0,5.${MODE==="pro"&&st.width?` · Aperçu ${st.width} × ${st.height}`:""}`;}
   catch(e){console.warn("camera",e);camFallback(e);}
   finally{CAM.opening=false;}}
 function layoutCam(){const v=$("camVideo"),box=$("camBox"),fr=$("camFrame");if(!v.videoWidth||!box.clientWidth)return;const W=box.clientWidth,H=box.clientHeight,r=v.videoWidth/v.videoHeight;let w=W,h=W/r;if(h>H){h=H;w=H*r;}Object.assign(fr.style,{width:w+"px",height:h+"px",left:(W-w)/2+"px",top:(H-h)/2+"px"});}
-$("camVideo").addEventListener("loadedmetadata",layoutCam);window.addEventListener("resize",()=>{if($("camera").classList.contains("active"))layoutCam();});
+$("camVideo").addEventListener("loadedmetadata",layoutCam);window.addEventListener("resize",()=>{if($("camera").classList.contains("active")){layoutCam();liveDraw();}});
 // Aperçu discret sur l'accueil quand la caméra a déjà été autorisée : l'application s'ouvre sur le viseur
 async function startHomePreview(){let ok=false;try{ok=localStorage.getItem("wsCamOK")==="1";}catch(_){}if(!ok||!camOK()||document.hidden)return;
   try{stopCamera();CAM.stream=await getStream(false);if(!$("home").classList.contains("active")){stopCamera();return;}const hv=$("homeVideo");hv.srcObject=CAM.stream;await hv.play().catch(()=>{});hv.classList.add("on");}catch(e){console.warn("home preview",e);stopCamera();}}
@@ -905,8 +922,68 @@ async function capturePhoto(){const btn=$("shutter");if(btn.classList.contains("
   if(!blob){const v=$("camVideo");const c=document.createElement("canvas");c.width=v.videoWidth||1280;c.height=v.videoHeight||720;c.getContext("2d").drawImage(v,0,0,c.width,c.height);blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.95));}
   if(!blob){btn.classList.remove("busy");toast("La photo n'a pas pu être prise : réessayez");return;}
   const src=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);});
-  btn.classList.remove("busy");stopCamera();stopLevel();loadPhoto(src,null);}
+  S.liveHint=LIVE.last?{...LIVE.last}:null;btn.classList.remove("busy");stopCamera();stopLevel();loadPhoto(src,null);}
 $("shutter").onclick=capturePhoto;$("camBack").onclick=()=>show("prepare");
+
+// ============================================================ GUIDAGE EN DIRECT : le moteur de mesure tourne sur les images du viseur
+// (Web Worker construit à partir du bundle WSMeasure inliné) : feuille/mire détectée et bien placée ?, bords du mur trouvés ?,
+// plafond et sol dans le cadre ? Les coins proposés sont affichés en direct, puis servent d'indice après la prise de vue.
+const LIVE={on:false,busy:false,id:0,last:null,pending:null,worker:null,cv:document.createElement("canvas"),timer:0,fails:0};
+const LIVE_WORKER_CODE=`self.onmessage=e=>{const m=e.data;const img={width:m.w,height:m.h,data:new Uint8ClampedArray(m.buf)};const t0=performance.now();let ref=null,lines=null,quad=null;
+  try{const r=WSMeasure.detectReference(img,{maxSideFrac:.7});if(r)ref={kind:r.kind,quad:r.quad,confidence:r.confidence};}catch(_){}
+  try{const cand=WSMeasure.wallLineCandidates(img,ref?{inside:WSMeasure.quadCenter(ref.quad)}:{});
+    if(cand){const f=cand.factor;const L=c=>c?{x1:(c.p.x+c.d.x*c.tMin)*f,y1:(c.p.y+c.d.y*c.tMin)*f,x2:(c.p.x+c.d.x*c.tMax)*f,y2:(c.p.y+c.d.y*c.tMax)*f}:null;
+      lines={ceiling:L(cand.ceilings[0]),floor:L(cand.floors[0]),left:L(cand.lefts[0]),right:L(cand.rights[0])};
+      const ch=WSMeasure.selectWallQuad(cand);if(ch)quad=ch.quad.map(p=>({x:p.x*f,y:p.y*f}));}}catch(_){}
+  self.postMessage({id:m.id,ref,lines,quad,ms:performance.now()-t0});};`;
+function liveWorker(){if(LIVE.worker!==null)return LIVE.worker;const el=document.getElementById("ws-measure-src");
+  if(!el||!window.Worker||WSMeasure.STUB){LIVE.worker=false;return false;}
+  try{const w=new Worker(URL.createObjectURL(new Blob([el.textContent,"\n",LIVE_WORKER_CODE],{type:"text/javascript"})));
+    w.onmessage=e=>liveResult(e.data);w.onerror=err=>{console.warn("live worker",err.message||err);LIVE.busy=false;LIVE.fails++;if(LIVE.fails>3){LIVE.on=false;liveStatus(null);}else liveSchedule(400);};
+    LIVE.worker=w;return w;}catch(e){console.warn("live worker",e);LIVE.worker=false;return false;}}
+function liveStart(){if(!liveWorker())return;LIVE.on=true;LIVE.last=null;LIVE.fails=0;liveDraw();liveSchedule(250);}
+function liveStop(){LIVE.on=false;clearTimeout(LIVE.timer);LIVE.pending=null;LIVE.busy=false;}
+function liveSchedule(ms){clearTimeout(LIVE.timer);LIVE.timer=setTimeout(liveTick,ms);}
+function liveTick(){if(!LIVE.on)return;const v=$("camVideo");if(!CAM.stream||!v.videoWidth||LIVE.busy||document.hidden){liveSchedule(200);return;}
+  const sc=560/Math.max(v.videoWidth,v.videoHeight);const w=Math.max(16,Math.round(v.videoWidth*sc)),h=Math.max(16,Math.round(v.videoHeight*sc));
+  const cv=LIVE.cv;cv.width=w;cv.height=h;const cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(v,0,0,w,h);
+  let d;try{d=cx.getImageData(0,0,w,h).data;}catch(e){liveSchedule(500);return;}
+  const g=new Uint8ClampedArray(w*h);for(let i=0,j=0;i<g.length;i++,j+=4)g[i]=(d[j]*77+d[j+1]*151+d[j+2]*28)>>8;
+  LIVE.busy=true;LIVE.pending={id:++LIVE.id,w,h,vw:v.videoWidth,vh:v.videoHeight};LIVE.worker.postMessage({id:LIVE.id,w,h,buf:g.buffer},[g.buffer]);}
+function liveResult(r){LIVE.busy=false;if(!LIVE.on||!LIVE.pending||r.id!==LIVE.pending.id){liveSchedule(100);return;}
+  LIVE.last={...r,w:LIVE.pending.w,h:LIVE.pending.h,vw:LIVE.pending.vw,vh:LIVE.pending.vh,at:Date.now()};liveDraw();liveStatus(liveAssess(LIVE.last));
+  if(MODE==="pro")$("camFoot").textContent=`Analyse ${Math.round(r.ms)} ms · image ${LIVE.last.w} × ${LIVE.last.h} · vidéo ${LIVE.last.vw} × ${LIVE.last.vh}`;
+  liveSchedule(Math.max(80,Math.min(600,r.ms*0.5)));}
+// Évaluation : textes courts, jamais bloquants. Retourne [{cls, text}] ou null quand rien n'est encore analysé.
+function liveAssess(L){const out=[];const long=Math.max(L.w,L.h);
+  if(L.ref){const q=L.ref.quad;const sides=[Math.hypot(q[1].x-q[0].x,q[1].y-q[0].y),Math.hypot(q[2].x-q[1].x,q[2].y-q[1].y),Math.hypot(q[3].x-q[2].x,q[3].y-q[2].y),Math.hypot(q[0].x-q[3].x,q[0].y-q[3].y)];
+    const short=Math.min(...sides),aspect=Math.max(...sides)/Math.max(1,short);const nominal=L.ref.kind==="mire"?27.7/19:29.7/21;const skew=Math.abs(aspect/nominal-1);
+    const oppo=Math.max(Math.abs(sides[0]-sides[2])/Math.max(sides[0],sides[2]),Math.abs(sides[1]-sides[3])/Math.max(sides[1],sides[3]));
+    const name=L.ref.kind==="mire"?"Mire":"Feuille";L.refBad=false;
+    if(short<long*0.03){out.push({cls:"warn",text:`${name} trop petite dans l'image : rapprochez-vous`});L.refBad=true;}
+    else if(skew>0.08||oppo>0.12){out.push({cls:"warn",text:`${name} vue de biais ou pas à plat : mettez-vous bien en face`});L.refBad=true;}
+    else{let placed=true;if(L.lines&&L.lines.left&&L.lines.right){const cx=(q[0].x+q[1].x+q[2].x+q[3].x)/4;const lx=(L.lines.left.x1+L.lines.left.x2)/2,rx=(L.lines.right.x1+L.lines.right.x2)/2;const span=Math.abs(rx-lx);if(span>40&&(Math.abs(cx-(lx+rx)/2)>span*0.3))placed=false;}
+      out.push(placed?{cls:"ok",text:`${name} détectée, bien placée`}:{cls:"warn",text:`${name} détectée : déplacez-la vers le milieu du mur`});}}
+  else out.push({cls:"",text:"Feuille ou mire non détectée : collez-la à plat sur le mur, face à vous"});
+  const ln=L.lines||{};const noC=!ln.ceiling,noF=!ln.floor;
+  if(noC&&noF)out.push({cls:"warn",text:"Plafond et sol hors cadre : reculez"});else if(noC)out.push({cls:"warn",text:"Plafond hors cadre : reculez ou relevez le téléphone"});else if(noF)out.push({cls:"warn",text:"Sol hors cadre : baissez le téléphone"});
+  const noL=!ln.left,noR=!ln.right;
+  if(L.quad)out.push({cls:"ok",text:"Bords du mur trouvés : coins proposés"});
+  else if(noL&&noR)out.push({cls:"",text:"Bords du mur non trouvés : cadrez le mur entier"});
+  else if(noL||noR)out.push({cls:"",text:`Bord ${noL?"gauche":"droit"} non vu : décalez-vous ou reculez`});
+  L.ready=!!(L.ref&&!L.refBad&&L.quad&&!noC&&!noF);return out;}
+function liveStatus(items){const box=$("liveStat");if(!items){box.innerHTML="";$("camFoot").style.display="";$("shutter").classList.remove("ready");return;}
+  $("camFoot").style.display=MODE==="pro"?"":"none";box.innerHTML=items.map(i=>`<span class="chip ${i.cls}"><i></i>${i.text}</span>`).join("");$("shutter").classList.toggle("ready",!!(LIVE.last&&LIVE.last.ready));}
+function liveDraw(){const svg=$("liveSvg");const L=LIVE.last;if(!L||!LIVE.on){svg.innerHTML="";return;}const fr=$("camFrame");const fw=fr.clientWidth||1,fh=fr.clientHeight||1;const sx=fw/L.w,sy=fh/L.h;
+  svg.setAttribute("viewBox",`0 0 ${fw} ${fh}`);const P=p=>`${(p.x*sx).toFixed(1)},${(p.y*sy).toFixed(1)}`;let out="";
+  const ln=L.lines||{};for(const k of ["ceiling","floor","left","right"]){const l=ln[k];if(l)out+=`<line class="wline" x1="${(l.x1*sx).toFixed(1)}" y1="${(l.y1*sy).toFixed(1)}" x2="${(l.x2*sx).toFixed(1)}" y2="${(l.y2*sy).toFixed(1)}"/>`;}
+  if(L.quad){out+=`<polygon class="wquad" points="${L.quad.map(P).join(" ")}"/>`;for(const p of L.quad)out+=`<circle class="wcorner" cx="${(p.x*sx).toFixed(1)}" cy="${(p.y*sy).toFixed(1)}" r="7"/>`;}
+  if(L.ref){out+=`<polygon class="ref${L.refBad?" bad":""}" points="${L.ref.quad.map(P).join(" ")}"/>`;const top=L.ref.quad.reduce((m,p)=>Math.min(m,p.y),1e9)*sy;const cx=L.ref.quad.reduce((m,p)=>m+p.x,0)/4*sx;out+=`<text x="${cx.toFixed(1)}" y="${Math.max(12,top-8).toFixed(1)}" text-anchor="middle">${L.ref.kind==="mire"?"Mire":"A4"}</text>`;}
+  svg.innerHTML=out;}
+// Indice pour l'analyse de la photo : coordonnées normalisées du dernier résultat en direct (le cadre vidéo peut différer de la photo :
+// même largeur de champ supposée, décalage vertical centré).
+function liveHintFor(photoW,photoH){const L=LIVE.last;if(!L||Date.now()-L.at>4000)return null;const ar=(L.vh/L.vw)/(photoH/photoW);
+  const N=p=>[p.x/L.w,0.5+(p.y/L.h-0.5)*ar];return{quad:L.quad?L.quad.map(N):null,ref:L.ref?{kind:L.ref.kind,quad:L.ref.quad.map(N),confidence:L.ref.confidence}:null,missing:{ceiling:!(L.lines&&L.lines.ceiling),floor:!(L.lines&&L.lines.floor)}};}
 document.addEventListener("visibilitychange",()=>{if(document.hidden){stopCamera();}else if($("camera").classList.contains("active"))openCamera();else if($("home").classList.contains("active"))startHomePreview();});
 $("viewfinder").addEventListener("click",()=>show("prepare"));$("viewfinder").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();show("prepare");}});
 $("demoPhoto").onclick=()=>{const d=demoPhoto();window.__wsDemo=d.preset;setRefChoice("a4");loadPhoto(d.src,d.preset);};
@@ -930,7 +1007,7 @@ function orderQuad(pts){const cx=pts.reduce((s,p)=>s+p[0],0)/4,cy=pts.reduce((s,
 function loadPhoto(src,preset){const im=new Image();im.onload=()=>{const m=2048,k=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(im,0,0,c.width,c.height);
   const d=x.getImageData(0,0,c.width,c.height).data,n=c.width*c.height;const R=new Uint8ClampedArray(n),G=new Uint8ClampedArray(n),B=new Uint8ClampedArray(n);for(let i=0,j=0;i<n;i++,j+=4){R[i]=d[j];G[i]=d[j+1];B[i]=d[j+2];}
   S.orig=im;S.img={src:k<1?c.toDataURL("image/jpeg",.9):src,w:c.width,h:c.height};S.planes={r:{width:c.width,height:c.height,data:R},g:{width:c.width,height:c.height,data:G},b:{width:c.width,height:c.height,data:B}};S.gray=WSMeasure.toGray(d,c.width,c.height);
-  Object.assign(S,{preset:preset||null,quad:null,refQuad:null,refDetected:false,refConf:0,k1:0,lines:null,survey:null,rect:null,plan:null,openings:[],opProposed:false,bb:{enabled:false,heightCm:null,source:null,pt:null,unc:0},w:0,h:0,hFull:0,number:null,sent:false,corrected:false,placing:[],wallProposed:false,demo:!!preset,stageMode:"none"});
+  Object.assign(S,{preset:preset||null,quad:null,refQuad:null,refDetected:false,refConf:0,k1:0,lines:null,survey:null,rect:null,plan:null,openings:[],opProposed:false,bb:{enabled:false,heightCm:null,source:null,pt:null,unc:0},w:0,h:0,hFull:0,number:null,sent:false,corrected:false,placing:[],wallProposed:false,wallFromLive:false,wallPartial:null,demo:!!preset,stageMode:"none"});
   opSel=null;adding=null;$("rectBox").classList.remove("adding");$("imgA").src=S.img.src;$("imgV").src=S.img.src;$("light").src=S.img.src;$("bbSeg").querySelectorAll("button").forEach(b=>b.classList.toggle("sel",b.dataset.bb==="0"));$("bbBox").style.display="none";$("modeBb").disabled=true;$("bbInput").value="";renderOpenings();
   show("analyze");startAnalysis();};im.src=src;}
 // Mur de démo : scène plane (418 × 250 cm à 3 px/cm — feuille A4 au milieu à hauteur des yeux, fenêtre 120 × 140 à 95 cm du sol,
@@ -965,13 +1042,25 @@ const toPx=q=>q.map(p=>({x:p[0]*S.img.w,y:p[1]*S.img.h}));const toPx1=p=>({x:p[0
 function startAnalysis(){$("scan").classList.add("on");$("validateA").disabled=true;$("toResult").disabled=true;setStageMode("none");refreshStatus();
   setTimeout(()=>{const pre=S.preset||{};
     if(S.refChoice!=="ceiling"){if(pre.refQuad){S.refQuad=pre.refQuad.map(p=>p.slice());S.refKind=pre.refKind||"a4";S.refDetected=true;S.refConf=pre.refConf||.9;}
-      else{const det=WSMeasure.detectReference(S.gray,{kind:S.refChoice==="mire"?"mire":"a4"});if(det&&det.confidence>=0.6){S.refQuad=det.quad.map(toNorm);S.refKind=det.kind;S.refDetected=true;S.refConf=det.confidence;}else{S.refQuad=null;S.refDetected=false;}}}
+      else{// Mire d'abord (validée par son code), puis feuille A4, quel que soit le choix annoncé : c'est la photo qui tranche.
+        let det=WSMeasure.detectReference(S.gray,{maxSideFrac:.7});if(!det&&S.liveHint&&S.liveHint.ref){const lh=liveHintFor(S.img.w,S.img.h);if(lh&&lh.ref){const near=lh.ref.quad.reduce((m,p)=>({x:m.x+p[0]*S.img.w/4,y:m.y+p[1]*S.img.h/4}),{x:0,y:0});det=WSMeasure.detectReference(S.gray,{maxSideFrac:.7,near});}}
+        if(det&&det.confidence>=0.6){S.refQuad=det.quad.map(toNorm);S.refKind=det.kind;S.refChoice=det.kind==="mire"?"mire":"a4";S.refDetected=true;S.refConf=det.confidence;}else{S.refQuad=null;S.refDetected=false;}}}
     if(pre.quad){S.quad=pre.quad.map(p=>p.slice());S.wallProposed=true;}
-    else{const pw=WSMeasure.proposeWallCorners(S.gray);if(pw&&pw.confidence>=0.5){S.quad=pw.quad.map(toNorm);S.wallProposed=true;S.lines=pw.lines;}else{S.quad=[[.08,.08],[.92,.08],[.92,.92],[.08,.92]];S.wallProposed=false;}}
+    else{S.wallPartial=null;const inside=S.refQuad?{x:S.refQuad.reduce((a,p)=>a+p[0],0)/4*S.img.w,y:S.refQuad.reduce((a,p)=>a+p[1],0)/4*S.img.h}:undefined;
+      const pw=WSMeasure.proposeWallCorners(S.gray,inside?{inside}:{});
+      if(pw&&pw.confidence>=0.5){S.quad=pw.quad.map(toNorm);S.wallProposed=true;S.lines=pw.lines;}
+      else{const lh=S.liveHint?liveHintFor(S.img.w,S.img.h):null;
+        if(lh&&lh.quad){S.quad=lh.quad.map(p=>[clamp(p[0],0,1),clamp(p[1],0,1)]);S.wallProposed=true;S.wallFromLive=true;}
+        else{// Lignes partielles : on construit un quad avec ce qui est visible et on dit clairement ce qui manque.
+          let cand=null;try{cand=WSMeasure.wallLineCandidates(S.gray,inside?{inside}:{});}catch(_){}
+          const f=cand?cand.factor:1;const W=S.img.w,Hh=S.img.h;const mid=(c,vert)=>{const t=(c.tMin+c.tMax)/2;return vert?(c.p.x+c.d.x*t)*f/W:(c.p.y+c.d.y*t)*f/Hh;};
+          const ceil=cand&&cand.ceilings[0]?mid(cand.ceilings[0],false):null,floor=cand&&cand.floors[0]?mid(cand.floors[0],false):null,left=cand&&cand.lefts[0]?mid(cand.lefts[0],true):null,right=cand&&cand.rights[0]?mid(cand.rights[0],true):null;
+          const t=ceil??.03,b=floor??.97,l=left??.05,r=right??.95;S.quad=[[l,t],[r,t],[r,b],[l,b]];S.wallProposed=false;
+          S.wallPartial={ceiling:ceil!=null,floor:floor!=null,left:left!=null,right:right!=null,any:ceil!=null||floor!=null||left!=null||right!=null};}}}
     if(S.lines&&S.lines.length){const rd=WSMeasure.estimateRadialDistortion(S.gray,S.lines);S.k1=(rd&&rd.k1)||0;}
     if(pre.openings){S.openings=pre.openings.map(o=>({...o}));S.opProposed=true;renderOpenings();}
     $("scan").classList.remove("on");setStageMode(S.refChoice==="ceiling"?"wall":S.refQuad?"wall":"ref");computeMeasure();rectifyView();
-    toast(S.demo?"Mur de démo : feuille et coins pré-remplis":S.refQuad?(S.wallProposed?"Feuille détectée, coins proposés : vérifiez-les":"Feuille détectée : placez les 4 coins du mur"):S.refChoice==="ceiling"?"Placez les 4 coins du mur":"Tapez les 4 coins de la feuille");},1500);}
+    const rn=S.refKind==="mire"?"Mire":"Feuille";toast(S.demo?"Mur de démo : feuille et coins pré-remplis":S.refQuad?(S.wallProposed?`${rn} détectée, coins proposés : vérifiez-les`:S.wallPartial&&S.wallPartial.any?`${rn} détectée · mur incomplet sur la photo, voir ci-dessous`:`${rn} détectée : placez les 4 coins du mur`):S.refChoice==="ceiling"?"Placez les 4 coins du mur":S.refChoice==="mire"?"Tapez les 4 coins de la mire":"Tapez les 4 coins de la feuille");},1500);}
 function setStageMode(m){S.stageMode=m;stageA.className="stage m-"+m+(m==="ref"&&!S.refQuad?" placing":"");$("stageModes").querySelectorAll("button").forEach(b=>b.classList.toggle("sel",b.dataset.mode===m));layoutA();}
 $("stageModes").querySelectorAll("button").forEach(b=>b.onclick=()=>{if(b.disabled)return;setStageMode(b.dataset.mode);if(b.dataset.mode==="baseboard")stageA.scrollIntoView({block:"center",behavior:"smooth"});});
 function layoutA(){if(!S.img)return;const W=stageA.clientWidth,Hh=stageA.clientHeight;if(!W)return;const P=q=>q.map(p=>`${p[0]*W},${p[1]*Hh}`).join(" ");
@@ -1048,7 +1137,9 @@ function refreshStatus(){const sv=S.survey;const ok=!!(sv&&sv.widthCm>0&&sv.heig
   else if(S.refDetected){rs.className="conf ok tight";rs.innerHTML=`${ICON("check")}<span>${S.refKind==="mire"?"Mire WallScan":"Feuille A4"} détectée (confiance ${Math.round(S.refConf*100)} %), cadre vert. Ajustez ses coins si besoin.</span>`;}
   else{rs.className="conf ok tight";rs.innerHTML=`${ICON("check")}<span>${S.refChoice==="mire"?"Mire":"Feuille"} placée à la main — estimation ± 5 %.</span><button class="link" type="button" id="placeReset">Recommencer</button>`;$("placeReset").onclick=reset;}
   if(S.corrected){ws.className="conf ok tight";ws.innerHTML=`${ICON("check")}<span>Coins du mur ajustés à la main.</span>`;}
-  else if(S.wallProposed){ws.className="conf ok tight";ws.innerHTML=`${ICON("check")}<span>Coins du mur ${S.demo?"pré-remplis":"proposés"} — vérifiez-les avec la loupe, surtout en haut.</span>`;}
+  else if(S.wallProposed){ws.className="conf ok tight";ws.innerHTML=`${ICON("check")}<span>Coins du mur ${S.demo?"pré-remplis":S.wallFromLive?"repris du viseur":"proposés"} — vérifiez-les avec la loupe, surtout en haut.</span>`;}
+  else if(S.wallPartial&&S.wallPartial.any){const miss=[];if(!S.wallPartial.ceiling)miss.push("le plafond");if(!S.wallPartial.floor)miss.push("le sol");if(!S.wallPartial.left)miss.push("le bord gauche");if(!S.wallPartial.right)miss.push("le bord droit");
+    ws.className="conf tight";ws.innerHTML=`${ICON("alert")}<span>${miss.length?`Sur cette photo, ${miss.join(", ")} ${miss.length>1?"ne sont pas visibles":"n'est pas visible"} : ${miss.includes("le plafond")||miss.includes("le sol")?"la hauteur ne peut pas être mesurée. Reprenez la photo en reculant, du plafond au sol, ou placez les coins manquants à la main.":"la largeur n'est pas sûre : placez les coins manquants à la main ou reculez."}`:"Les bords trouvés ne se recoupent pas nettement : vérifiez les 4 coins avec la loupe."}</span>`;}
   else{ws.className="conf tight";ws.innerHTML=`${ICON("alert")}<span>Placez les 4 coins du mur : plafond à gauche et à droite, sol à gauche et à droite (sous la plinthe).</span>`;}
   const bs=$("bbStatus");if(S.bb.enabled){if(S.bb.heightCm==null){bs.className="conf tight";bs.innerHTML=`${ICON("alert")}<span>Mesurez ou saisissez la hauteur de plinthe. Sans hauteur, l'option reste inactive : rien n'est déduit.</span>`;}else{bs.className="conf ok tight";bs.innerHTML=`${ICON("check")}<span>Plinthe de ${fq(S.bb.heightCm)} cm ${S.bb.source==="measured"?`mesurée sur la photo (± ${fq(Math.max(0.5,Math.round(S.bb.unc*2)/2))} cm)`:"saisie"} — le papier s'arrête en haut de la plinthe.</span>`;}}
   $("toResult").disabled=!ok;if(ok)updateResult();else $("validateA").disabled=true;}

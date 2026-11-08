@@ -18,10 +18,11 @@ const args = process.argv.slice(2);
 const read = (p) => readFileSync(p, "utf8");
 const rel = (p) => relative(root, p);
 // Un bundle inliné ne doit pas contenir « </script> » : on l'échappe (équivalent en JS dans une chaîne, un gabarit ou une regex).
-const inline = (code, label) => `<script>/* ${label} */\n${code.replace(/<\/script/gi, "<\\/script")}\n</script>`;
+const inline = (code, label, id) => `<script${id ? ` id="${id}"` : ""}>/* ${label} */\n${code.replace(/<\/script/gi, "<\\/script")}\n</script>`;
 
 const BUNDLES = [
-  { pkg: "packages/measurement", dist: "packages/measurement/dist/wsmeasure.iife.js", global: "WSMeasure", vendor: "vendor/wsmeasure.iife.js", tag: '<script src="./vendor/wsmeasure.iife.js"></script>' },
+  // id : la page relit le texte de ce <script> pour lancer le moteur de mesure dans un Web Worker (guidage en direct du viseur).
+  { pkg: "packages/measurement", dist: "packages/measurement/dist/wsmeasure.iife.js", global: "WSMeasure", vendor: "vendor/wsmeasure.iife.js", tag: '<script src="./vendor/wsmeasure.iife.js"></script>', id: "ws-measure-src" },
   { pkg: "packages/quote-engine", dist: "packages/quote-engine/dist/wsquote.iife.js", global: "WSQuote", vendor: "vendor/wsquote.iife.js", tag: '<script src="./vendor/wsquote.iife.js"></script>' },
 ];
 const STUB_TAG = '<script src="./vendor/stubs.js"></script>';
@@ -50,7 +51,7 @@ for (const b of BUNDLES) {
   if (existsSync(dist)) {
     const code = read(dist);
     if (!code.includes(b.global)) console.warn(`attention : ${b.dist} ne mentionne pas la globale ${b.global}`);
-    html = html.replace(b.tag, () => inline(code, `${b.dist} → ${b.global}`));
+    html = html.replace(b.tag, () => inline(code, `${b.dist} → ${b.global}`, b.id));
     engines.push(`${b.global} : bundle réel (${rel(dist)}, ${(code.length / 1024).toFixed(1)} Ko)`);
   } else {
     html = html.replace(b.tag, "");

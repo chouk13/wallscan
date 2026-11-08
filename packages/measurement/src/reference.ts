@@ -20,6 +20,8 @@ export interface ReferenceDetection {
 export interface ReferenceHint {
   kind?: ReferenceKind;
   near?: Pt;
+  /** Taille maximale de la référence en fraction du grand côté (défaut 0,4). */
+  maxSideFrac?: number;
 }
 
 interface Candidate {
@@ -138,7 +140,7 @@ export function decodeMire(img: GrayImage, quad: Quad): { code: number; contrast
       bright.push(sample(u * fw, -0.5), sample(u * fw, fh + 0.5), sample(-0.5, u * fh), sample(fw + 0.5, u * fh));
       bright.push(sample(u * fw, 1.5), sample(u * fw, fh - 1.5), sample(1.5, u * fh), sample(fw - 1.5, u * fh));
     }
-    // Carrés de repère (centres).
+    // Repères d'angle (centres : retrait + demi-côté depuis le bord extérieur du cadre).
     const ci = L.cornerInset + L.cornerSquare / 2;
     dark.push(sample(ci, ci), sample(fw - ci, ci), sample(fw - ci, fh - ci), sample(ci, fh - ci));
     const meanDark = dark.reduce((s, v) => s + v, 0) / dark.length;
@@ -150,7 +152,7 @@ export function decodeMire(img: GrayImage, quad: Quad): { code: number; contrast
     for (const v of dark) if (v > thr) bad++;
     for (const v of bright) if (v < thr) bad++;
     if (bad > 2) continue;
-    // Code 4 × 4.
+    // Code 5 × 5 (motif fixe).
     const n = L.codeCells;
     const cell = L.codeCell;
     const gx0 = fw / 2 - (n * cell) / 2;
@@ -174,7 +176,7 @@ export function detectReference(img: GrayImage, hint: ReferenceHint = {}): Refer
   if (w < 32 || h < 32) return null;
   const longSide = Math.max(w, h);
   const minSide = Math.max(10, longSide * 0.008);
-  const maxSide = longSide * 0.125;
+  const maxSide = longSide * (hint.maxSideFrac ?? 0.4); // la feuille peut occuper une grande part du cadre (utilisateur proche, mur partiel)
   const noise = noiseSigma(img);
   const window = Math.floor(Math.min(w, h) * 0.25) | 1;
   const wantMire = hint.kind === undefined || hint.kind === "mire";

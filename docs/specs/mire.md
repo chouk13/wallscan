@@ -15,22 +15,29 @@ Toute la géométrie ci-dessous est codée dans `packages/measurement/src/consta
 | **Cadre noir, bord extérieur** | 10, 10 | **190 × 277** | noir plein |
 | Cadre noir, épaisseur | — | 10 | — |
 | Intérieur blanc | 20, 20 | 170 × 257 | blanc |
-| Carrés de repère (4) | à 30 mm des bords extérieurs du cadre : (40, 40), (150, 40), (150, 237), (40, 237) | 20 × 20 | noir |
-| Code 4 × 4 | centré sur le cadre : origine (75, 118,5), cellules de 15 × 15 | 60 × 60 | noir / blanc |
+| Repères d'angle (4) | à 20 mm des bords extérieurs du cadre : (30, 30), (165, 30), (165, 252), (30, 252) ; centres à 27,5 mm | 15 × 15 (un carré en haut à gauche, trois disques) | noir |
+| Code 5 × 5 | centré sur le cadre : origine (80, 123,5), cellules de 10 × 10 | 50 × 50 | noir / blanc, motif fixe |
 
 La **dimension mesurée** par le pipeline est le bord extérieur du cadre noir : **190 × 277 mm** (`MIRE_OUTER_CM`). Les coins sont
 affinés en sous-pixel sur la transition blanc → noir, nette à l'impression laser ; c'est pour cela que la mire est plus précise
 qu'une feuille blanche dont le bord est lu contre un mur de teinte variable.
 
-## Code (16 cellules, ligne par ligne, cellule noire = 1)
+## Code (25 cellules, ligne par ligne depuis le haut-gauche en portrait, cellule noire = 1)
 
-- Cellule 0 (haut-gauche) = noire ; cellules 3, 12, 15 (autres coins) = blanches → **orientation** (les 4 rotations sont essayées
-  au décodage, une seule passe).
-- 12 cellules restantes dans l'ordre `[1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14]` : les 6 premières portent l'identifiant (6 bits,
-  0–63, bit 0 en premier), les 6 suivantes son **complément** bit à bit → validation sans ambiguïté (une fenêtre, un cadre ou un
-  tableau ne décodent jamais).
-- Identifiant v1 : **22** (réservé « mire WallScan A4 v1 ») ; les autres valeurs restent disponibles pour de futurs formats
-  (A3, mire d'angle). Le détecteur accepte tout identifiant et le renvoie dans `code`.
+- Motif fixe `1011001001110100010110111` (`MIRE_CODE_PATTERN`). Le détecteur essaie les 4 rotations du cadre et accepte le motif
+  à **2 cellules près** (`MIRE_CODE_MAX_ERRORS`) ; les trois rotations du motif en diffèrent d'au moins 12 cellules, donc
+  l'orientation est sans ambiguïté et une fenêtre, un cadre ou un tableau ne décodent jamais.
+- Une seule mire est imprimée en v1 : `code` vaut toujours `0`. Un futur format (A3, mire d'angle) prendra un autre motif.
+
+### Historique — correction du 2026-11-08 (première photo réelle)
+
+La première version de cette spec décrivait des carrés de 20 mm à 30 mm du cadre et un code 4 × 4 de 15 mm portant un
+identifiant 6 bits + complément. Le PDF livré (`scripts/build-mire.py`, vérifié à 0,5 mm au banc d'impression) avait été dessiné
+avec les cotes ci-dessus (repères 15 mm à 20 mm, code 5 × 5 de 10 mm) : le détecteur ne lisait donc jamais la mire imprimée,
+alors que le banc synthétique, qui dessinait la mire selon la spec, la lisait à 100 %. La mire imprimée étant déjà en
+circulation et sa dimension mesurée (cadre 190 × 277) inchangée, c'est le détecteur et la spec qui ont été alignés sur le PDF.
+Leçon retenue : le PDF est désormais vérifié **contre `MIRE_LAYOUT`** (même source) et toute mire doit être lue sur une photo
+réelle avant livraison.
 
 ## Conditions de lecture (mesurées sur le banc synthétique, image de travail 2048 px)
 

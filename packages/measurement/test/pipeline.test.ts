@@ -244,7 +244,7 @@ describe("pipeline automatique", () => {
     expect(res.failure).toBeNull();
     expect(res.reference!.kind).toBe("mire");
     expect(res.reference!.manual).toBe(false);
-    expect(res.reference!.code).toBe(22);
+    expect(res.reference!.code).toBe(0);
     expect(res.wallCorners).not.toBeNull();
     expect(quadErr(res.wallCorners!.quad, s.wallQuad)).toBeLessThan(1.5);
     expect(Math.abs(res.distortion!.k1 - 0.012)).toBeLessThan(0.003);
