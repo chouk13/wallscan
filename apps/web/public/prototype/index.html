@@ -326,7 +326,7 @@
   /* ---------- Visualisation (paysage, Atelier) ---------- */
   #viz{flex-direction:row;background:var(--char)}
   .vizstage{flex:1;position:relative;overflow:hidden;background:var(--char);min-width:0}
-  .vizstage .fit{position:absolute}
+  .vizstage .fit{position:absolute;transition:left .32s cubic-bezier(.4,0,.2,1),top .32s cubic-bezier(.4,0,.2,1),width .32s cubic-bezier(.4,0,.2,1),height .32s cubic-bezier(.4,0,.2,1)}
   .vizstage img.photo{position:absolute;left:0;top:0;width:100%;height:100%}
   .layer{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none}
   .vizinfo{position:absolute;left:calc(16px + var(--sal));top:calc(12px + var(--sat));max-width:min(62%,420px);z-index:5;pointer-events:none;background:var(--plate);border:1px solid var(--paper18);padding:10px 14px 11px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
@@ -1356,7 +1356,7 @@ matchMedia("(orientation: landscape)").addEventListener("change",e=>{if(e.matche
 
 // ============================================================ RENDU + ROULETTE
 let showStrips=false;
-function fitRect(){const st=$("vizstage");const W=st.clientWidth,Hh=st.clientHeight;if(!S.img||!W)return null;const k=Math.min(W/S.img.w,Hh/S.img.h);const w=S.img.w*k,h=S.img.h*k;return{x:(W-w)/2,y:(Hh-h)/2,w,h};}
+function fitRect(){const st=$("vizstage");const v=$("viz");const rollW=v.classList.contains("immersive")&&!v.classList.contains("roll-hidden")?$("roulette").offsetWidth:0;const W=st.clientWidth-rollW,Hh=st.clientHeight;if(!S.img||!(W>0))return null;/* la photo se centre dans la zone dégagée, éventail ouvert ou fermé */const k=Math.min(W/S.img.w,Hh/S.img.h);const w=S.img.w*k,h=S.img.h*k;return{x:(W-w)/2,y:(Hh-h)/2,w,h};}
 function renderViz(){const f=fitRect();if(!f||!S.quad||!(S.w>0))return;const fit=$("fit");fit.style.left=f.x+"px";fit.style.top=f.y+"px";fit.style.width=f.w+"px";fit.style.height=f.h+"px";const W=f.w,Hh=f.h,p=S.sel;
   // repère local du papier = plan du mur en cm × k (même échelle en x et y), envoyé sur le quadrilatère du mur par l'homographie
   const clip=$("paperClip");if(S.outlineCm&&S.survey){const pts=outlineImg().map(p=>`${(p[0]*W).toFixed(1)}px ${(p[1]*Hh).toFixed(1)}px`);clip.style.clipPath=`polygon(${pts.join(",")})`;}else clip.style.clipPath="";
@@ -1381,7 +1381,7 @@ $("toggleStrips").onclick=()=>{showStrips=!showStrips;renderViz();};
 // Rendu = grand écran : photo plein cadre (plein écran du navigateur quand il l'autorise), fond = photo floutée, éventail
 // d'échantillons en surimpression sur le bord, fermé à l'ouverture pour une première vue dégagée ; onglet pour l'ouvrir / le fermer.
 let IMM=false;
-function setRoll(open){const v=$("viz");v.classList.toggle("roll-hidden",!open);const tab=$("rollTab");tab.setAttribute("aria-expanded",String(open));tab.querySelector("use").setAttribute("href",open?"#i-chev-r":"#i-chev-l");}
+function setRoll(open){const v=$("viz");v.classList.toggle("roll-hidden",!open);const tab=$("rollTab");tab.setAttribute("aria-expanded",String(open));tab.querySelector("use").setAttribute("href",open?"#i-chev-r":"#i-chev-l");renderViz();setTimeout(renderViz,360);}
 function setImmersive(on){IMM=on;$("viz").classList.toggle("immersive",on);if(on)setRoll(false);
   $("vizBack").style.backgroundImage=on&&S.img?`url("${S.img.src}")`:"";
   if(on){const el=document.documentElement;if(el.requestFullscreen&&!document.fullscreenElement)el.requestFullscreen().catch(()=>{});}

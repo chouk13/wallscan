@@ -70,6 +70,11 @@ if (/<script src="\.\//.test(html)) throw new Error("il reste une balise <script
 
 // 3. dist/
 mkdirSync(join(dir, "dist"), { recursive: true });
+// Garde-fou : chaque bloc <script> inliné doit être du JavaScript valide (un commentaire mal placé a déjà cassé toute la page).
+for (const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) {
+  if (/\bsrc=/.test(m[0].slice(0, m[0].indexOf(">")))) continue;
+  try { new Function(m[1]); } catch (e) { console.error(`Erreur de syntaxe dans un <script> du prototype : ${e.message}`); process.exit(1); }
+}
 writeFileSync(join(dir, "dist/index.html"), html);
 for (const f of ["embed.js", "manifest.webmanifest", "mire-wallscan.pdf", "mire.html"]) if (existsSync(join(dir, f))) copyFileSync(join(dir, f), join(dir, "dist", f));
 if (existsSync(join(dir, "icons"))) { mkdirSync(join(dir, "dist/icons"), { recursive: true }); for (const f of readdirSync(join(dir, "icons"))) copyFileSync(join(dir, "icons", f), join(dir, "dist/icons", f)); }
