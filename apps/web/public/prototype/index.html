@@ -289,6 +289,8 @@
   .field input,.field select{min-height:48px;width:100%;border:1px solid var(--ink30);border-radius:0;background:var(--paper);color:var(--char);padding:0 12px;font-size:16px;letter-spacing:0;text-transform:none;font-weight:400;font-family:var(--text)}
   .field select{appearance:none;-webkit-appearance:none;padding-right:30px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231A1614' stroke-width='1.5' stroke-linecap='round'><path d='m7 10 5 5 5-5'/></svg>");background-repeat:no-repeat;background-position:right 8px center;background-size:18px}
   .fields{display:flex;gap:10px;margin-top:10px}
+  .bottombar .why{margin:0 0 8px;text-align:center;color:var(--brown);font-size:13px;line-height:1.4;cursor:pointer}
+  .bottombar .why b{font-weight:500}
   #compBlock{flex-direction:column;gap:6px;padding:12px;border:1px solid var(--gold);background:var(--paper)}
   #compBlock .field{width:100%}#compBlock .field span{display:block;line-height:1.5}#compBlock .foot{margin:0;font-size:13px;line-height:1.45}
   .rowhead{display:flex;align-items:center;justify-content:space-between;margin-top:18px}
@@ -671,7 +673,7 @@
       <p class="foot">Estimation indicative. Devis définitif sous 48h après visite.</p>
     </div>
   </div>
-  <div class="bottombar"><button class="btn primary lg block" id="toResult" type="button" disabled>Voir le résultat →</button></div>
+  <div class="bottombar"><p class="foot why" id="toResultWhy" style="display:none"></p><button class="btn primary lg block" id="toResult" type="button" disabled>Voir le résultat →</button></div>
 </section>
 
 <!-- ============ ÉTAPE 2 · RÉSULTAT (Carnet) ============ -->
@@ -1386,7 +1388,7 @@ const allOpenings=()=>S.openings.concat(S.outlineZones||[]);
 const REFUSAL=(WSMeasure.REFUSAL_WARNINGS&&[...WSMeasure.REFUSAL_WARNINGS])||["measure_implausible","image_blurry","reference_too_small","distortion_extreme","degenerate"];
 const INFORMATIONAL=["baseboard_height_required","reference_small","height_completed_manual","wall_trapezoid"];
 const surveyWarnings=sv=>sv?[...new Set([...((sv.checks&&sv.checks.warnings)||[]),...(sv.warnings||[])])]:[];
-const hasRefusal=sv=>surveyWarnings(sv).some(w=>REFUSAL.includes(w)||w==="reference_ambiguous");
+const hasRefusal=sv=>surveyWarnings(sv).some(w=>REFUSAL.includes(w)); // `reference_ambiguous` avertit (confiance plafonnée) mais ne bloque pas : l'utilisateur voit le cadre vert et peut le corriger
 const WARN_TXT={measure_implausible:"Dimensions invraisemblables pour un mur : la référence est probablement mal détectée. Vérifiez la feuille et les coins, ou reprenez la photo.",reference_ambiguous:"Plusieurs formes ressemblent à la feuille, ou elle est loin du milieu du mur : vérifiez que le cadre vert est bien sur la feuille.",reference_scale_suspect:"La taille de la feuille par rapport au mur est inhabituelle : vérifiez la feuille et les coins.",reference_small:"Feuille petite dans l'image : précision un peu réduite, rapprochez-vous la prochaine fois.",image_soft:"Photo légèrement floue : précision réduite.",image_blurry:"Photo floue : reprenez-la, téléphone bien stable.",distortion_strong:"Déformation de l'objectif marquée : évitez le grand-angle (×0,5) et le zoom.",distortion_extreme:"Déformation de l'objectif trop forte pour mesurer : reprenez avec l'objectif principal (×1).",height_completed_manual:"Plafond hors cadre sur la photo : la largeur est mesurée, la hauteur est celle que vous avez saisie.",height_incomplete:"Plafond hors cadre : la hauteur affichée est seulement la partie visible. Saisissez la hauteur du mur pour compléter.",floor_line_ambiguous:"La ligne du sol est incertaine (plinthe ou ombre) : vérifiez les deux coins du bas.",wall_corners_inconsistent:"Les côtés opposés du mur ne concordent pas : vérifiez les quatre coins avec la loupe.",wall_trapezoid:"Les deux hauteurs diffèrent : le mur est traité comme un trapèze (hauteurs gauche et droite conservées).",reference_aspect_mismatch:"La feuille semble inclinée ou pas tout à fait à plat : l'échelle est moins sûre. Recollez-la bien à plat si possible.",reference_too_small:"La feuille est petite sur la photo : rapprochez-vous ou utilisez la mire pour plus de précision.",distortion_high:"L'objectif déforme beaucoup l'image (grand-angle) : la mesure reste indicative. Évitez le mode ×0,5.",distortion_not_estimated:"La déformation de l'objectif n'a pas pu être estimée : les bords du mur ne sont pas assez visibles.",uncertainty_above_display_tolerance:"La précision réelle dépasse la tolérance affichée : refaites la photo plus près, de face.",baseboard_height_required:"Indiquez la hauteur de plinthe (mesurée sur la photo ou saisie) pour la déduire."};
 let drag=null;function ptr(e){const r=stageA.getBoundingClientRect();return[clamp((e.clientX-r.left)/r.width,0,1),clamp((e.clientY-r.top)/r.height,0,1)];}
 stageA.addEventListener("pointerdown",e=>{if(!S.img||$("scan").classList.contains("on"))return;const t=e.target.closest(".handle");const p=ptr(e);
@@ -1490,8 +1492,18 @@ function refreshStatus(){const sv=S.survey;const ok=!!(sv&&sv.widthCm>0&&sv.heig
   const bs=$("bbStatus");if(S.bb.enabled){if(S.bb.heightCm==null){bs.className="conf tight";bs.innerHTML=`${ICON("alert")}<span>Mesurez ou saisissez la hauteur de plinthe. Sans hauteur, l'option reste inactive : rien n'est déduit.</span>`;}else{bs.className="conf ok tight";bs.innerHTML=`${ICON("check")}<span>Plinthe de ${fq(S.bb.heightCm)} cm ${S.bb.source==="measured"?`mesurée sur la photo (± ${fq(Math.max(0.5,Math.round(S.bb.unc*2)/2))} cm)`:"saisie"} — le papier s'arrête en haut de la plinthe.</span>`;}}
   qualityCards();
   const refused=!!(S.survey&&hasRefusal(S.survey));const qs=$("qualStatus");
-  if(refused){const codes=surveyWarnings(S.survey).filter(w=>REFUSAL.includes(w)||w==="reference_ambiguous");qs.style.display="";qs.className="conf tight";qs.innerHTML=`${ICON("alert")}<span><b>Mesure refusée en l'état.</b> ${codes.map(w=>WARN_TXT[w]||w).join(" ")}</span>`;}else qs.style.display="none";
-  const okFinal=ok&&!(S.survey&&S.survey.heightIncomplete)&&!refused;$("toResult").disabled=!okFinal;if(okFinal)updateResult();else $("validateA").disabled=true;}
+  if(refused){const codes=surveyWarnings(S.survey).filter(w=>REFUSAL.includes(w));qs.style.display="";qs.className="conf tight";qs.innerHTML=`${ICON("alert")}<span><b>Mesure refusée en l'état.</b> ${codes.map(w=>WARN_TXT[w]||w).join(" ")}</span>`;}else qs.style.display="none";
+  const okFinal=ok&&!(S.survey&&S.survey.heightIncomplete)&&!refused;$("toResult").disabled=!okFinal;
+  // Raison du blocage, toujours visible au-dessus du bouton, et un tap y mène
+  const why=$("toResultWhy");let reason=null,target=null;
+  if(!okFinal){if(S.refChoice!=="ceiling"&&S.refChoice!=="ar"&&!S.refQuad){reason="Pour continuer : placez les 4 coins de la feuille ou de la mire (onglet <b>Feuille</b>).";target="refStatus";}
+    else if(!S.quad){reason="Pour continuer : placez les 4 coins du mur (onglet <b>Coins du mur</b>).";target="wallStatus";}
+    else if(S.survey&&S.survey.heightIncomplete){reason="Pour continuer : indiquez la <b>hauteur du mur</b> (plafond hors cadre) ou reprenez la photo.";target="compBlock";}
+    else if(refused){reason="<b>Mesure refusée</b> : corrigez la feuille ou les coins, ou reprenez la photo (détails plus haut).";target="qualStatus";}
+    else if(S.bb&&S.bb.enabled&&!(S.bb.heightCm>0)){reason="Pour continuer : indiquez la <b>hauteur de plinthe</b> (mesurée sur la photo ou saisie).";target="bbStatus";}
+    else if(!ok){reason="Pour continuer : vérifiez la feuille et les coins du mur, la mesure n'a pas pu être calculée.";target="wallStatus";}}
+  if(reason){why.style.display="";why.innerHTML=reason;why.onclick=()=>{const el=target&&$(target);if(el)el.scrollIntoView({behavior:"smooth",block:"center"});};}else{why.style.display="none";}
+  if(okFinal)updateResult();else $("validateA").disabled=true;}
 
 // ============================================================ RÉSULTAT : dimensions ± tolérance, surface hors ouvertures, avertissements
 function updateResult(){const sv=S.survey;const ok=!!(sv&&sv.widthCm>0&&sv.heightCm>0);const c=$("confBox");
