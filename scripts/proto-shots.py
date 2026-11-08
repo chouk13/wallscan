@@ -61,6 +61,13 @@ async def run(b, name, w, h, mode, errs):
         info = await pg.evaluate("({w:S.img.w,h:S.img.h,ow:S.orig.width,oh:S.orig.height,ref:!!S.refQuad,refKind:S.refKind,quad:!!S.quad,proposed:S.wallProposed,fromLive:!!S.wallFromLive,partial:S.wallPartial,wall:document.getElementById('wallStatus').textContent})")
         print(f"{tag} viseur: photo {info['ow']}×{info['oh']} (travail {info['w']}×{info['h']}), référence={info['ref']} ({info['refKind']}), coins proposés={info['proposed']} (viseur={info['fromLive']}), partiel={info['partial']}")
         print(f"{tag} statut mur: {info['wall'][:160]}")
+        comp = await pg.evaluate("document.getElementById('compBlock').style.display!=='none'")
+        if comp:
+            before = await pg.evaluate("({w:S.survey&&S.survey.widthCm,hVis:S.visibleHeightCm,inc:!!(S.survey&&S.survey.heightIncomplete),btn:document.getElementById('toResult').disabled})")
+            await pg.fill("#compHeight", "250"); await pg.wait_for_timeout(600)
+            after = await pg.evaluate("({w:S.survey.widthCm,h:S.survey.heightCm,done:!!S.survey.heightCompleted,btn:document.getElementById('toResult').disabled,foot:document.getElementById('compFoot').textContent})")
+            print(f"{tag} complétion hauteur: avant {before} → après {after}")
+            await pg.screenshot(path=f"{OUT}/{tag}-1f-completion.png")
         await pg.click("#backShoot"); await pg.wait_for_timeout(900)
         assert await pg.evaluate("document.getElementById('camera').classList.contains('active')"), "retour vers le viseur attendu"
         await pg.click("#camBack"); await pg.wait_for_timeout(200)
@@ -81,6 +88,8 @@ async def run(b, name, w, h, mode, errs):
     await pg.screenshot(path=f"{OUT}/{tag}-2d-verify-loupe.png")
     await pg.mouse.move(hb[0], hb[1], steps=4); await pg.mouse.up(); await pg.wait_for_timeout(300)
     # plinthes : avec plinthes → mesurer sur la photo → tap sur le haut de la plinthe (point connu du mur de démo)
+    dbg = await pg.evaluate("""(()=>{const el=document.querySelector('#bbSeg [data-bb="1"]');const r=el.getBoundingClientRect();let a=el,chain=[];while(a&&a!==document.body){const s=getComputedStyle(a);if(s.display==='none'||s.visibility==='hidden'||s.opacity==='0')chain.push(a.id||a.className);a=a.parentElement;}return {rect:[r.x,r.y,r.width,r.height],hidden:chain,active:[...document.querySelectorAll('.screen.active')].map(e=>e.id)}})()""")
+    if dbg["hidden"] or dbg["rect"][2] == 0: print(f"{tag} DEBUG plinthes invisible: {dbg}")
     await pg.click('#bbSeg [data-bb="1"]'); await pg.wait_for_timeout(150)
     await full(pg, f"{OUT}/{tag}-2e-verify-bb-off.png")
     await pg.click("#bbMeasure"); await pg.wait_for_timeout(500)
