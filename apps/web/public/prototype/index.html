@@ -182,6 +182,7 @@
   .liveSvg .ref.bad{stroke:#C96A4A;fill:rgba(201,106,74,.10)}
   .liveSvg .wline{stroke:rgba(244,239,230,.75);stroke-width:1.5;stroke-dasharray:6 5}
   .liveSvg .wquad{fill:none;stroke:var(--paper);stroke-width:1.5}
+  .liveSvg .notch{fill:rgba(201,106,74,.18);stroke:#E0A48C;stroke-width:1.5;stroke-dasharray:5 4}
   .liveSvg .wcorner{fill:var(--char);stroke:var(--paper);stroke-width:2}
   .liveSvg text{font-family:var(--serif);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;fill:var(--paper);paint-order:stroke;stroke:rgba(0,0,0,.6);stroke-width:3px}
   .livestat{position:absolute;left:16px;right:16px;bottom:calc(136px + var(--sab));z-index:3;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
@@ -220,6 +221,7 @@
   .stage.m-outline #polyA{opacity:.35}
   #outPoly{fill:rgba(201,168,122,.14);stroke:var(--gold);stroke-width:2;stroke-dasharray:7 5}
   .stage.m-outline #outPoly{stroke-dasharray:none}
+  .opening .opnote{grid-column:1/-1;margin:-2px 0 0;color:var(--brown)}
   .rectOps .op.k-excluded.out{border-style:dashed;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(201,168,122,.35) 0 6px,transparent 6px 12px)}
   .stage.m-ref #polyA,.stage.m-baseboard #polyA{opacity:.45}
   .stage.m-wall #refPoly,.stage.m-baseboard #refPoly{opacity:.55}
@@ -964,7 +966,12 @@ const LIVE_WORKER_CODE=`self.onmessage=e=>{const m=e.data;const img={width:m.w,h
     if(cand){const f=cand.factor;const L=c=>c?{x1:(c.p.x+c.d.x*c.tMin)*f,y1:(c.p.y+c.d.y*c.tMin)*f,x2:(c.p.x+c.d.x*c.tMax)*f,y2:(c.p.y+c.d.y*c.tMax)*f}:null;
       lines={ceiling:L(cand.ceilings[0]),floor:L(cand.floors[0]),left:L(cand.lefts[0]),right:L(cand.rights[0])};
       const ch=WSMeasure.selectWallQuad(cand);if(ch)quad=ch.quad.map(p=>({x:p.x*f,y:p.y*f}));}}catch(_){}
-  self.postMessage({id:m.id,ref,lines,quad,ms:performance.now()-t0});};`;
+  // Décrochement au plafond en direct : mur redressé à petite échelle (rapport largeur/hauteur estimé par le contrôle caméra), bande collée au plafond
+  let notch=null;try{if(quad){const cc=WSMeasure.cameraCheck(quad,{w:m.w,h:m.h});const aspect=cc&&cc.aspect>0.3&&cc.aspect<6?cc.aspect:1.6;const rw=320,rh=Math.max(60,Math.round(rw/aspect));
+      const Hq=WSMeasure.homographyQuadToQuad(quad,[{x:0,y:0},{x:rw,y:0},{x:rw,y:rh},{x:0,y:rh}]);
+      if(Hq){const rect=WSMeasure.warpToPlane(img,Hq,rw,rh);const props=WSMeasure.proposeCeilingNotches(rect,{minDepthPx:Math.round(rh*0.05),maxDepthPx:Math.round(rh*0.45),minSpanPx:Math.round(rw*0.25),maxGapPx:6});
+        const best=props&&props[0];if(best&&best.confidence>=0.6){const inv=WSMeasure.invertHomography(Hq);const P=(x,y)=>WSMeasure.applyHomography(inv,{x,y});notch={quad:[P(best.x,0),P(best.x+best.w,0),P(best.x+best.w,best.h),P(best.x,best.h)],confidence:best.confidence,depthPct:best.h/rh};}}}}catch(_){}
+  self.postMessage({id:m.id,ref,lines,quad,notch,ms:performance.now()-t0});};`;
 function liveWorker(){if(LIVE.worker!==null)return LIVE.worker;const el=document.getElementById("ws-measure-src");
   if(!el||!window.Worker||WSMeasure.STUB){LIVE.worker=false;return false;}
   try{const w=new Worker(URL.createObjectURL(new Blob([el.textContent,"\n",LIVE_WORKER_CODE],{type:"text/javascript"})));
@@ -998,6 +1005,7 @@ function liveAssess(L){const out=[];const long=Math.max(L.w,L.h);
   if(noC&&noF)out.push({cls:"warn",text:"Plafond et sol hors cadre : reculez"});else if(noC)out.push({cls:"warn",text:"Plafond hors cadre : reculez ou relevez le téléphone"});else if(noF)out.push({cls:"warn",text:"Sol hors cadre : baissez le téléphone"});
   const noL=!ln.left,noR=!ln.right;
   if(L.quad)out.push({cls:"ok",text:"Bords du mur trouvés : coins proposés"});
+  if(L.notch)out.push({cls:"",text:"Décrochement au plafond détecté (poutre ?) : il sera proposé après la photo"});
   else if(noL&&noR)out.push({cls:"",text:"Bords du mur non trouvés : cadrez le mur entier"});
   else if(noL||noR)out.push({cls:"",text:`Bord ${noL?"gauche":"droit"} non vu : décalez-vous ou reculez`});
   L.ready=!!(L.ref&&!L.refBad&&L.quad&&!noC&&!noF);return out;}
@@ -1007,6 +1015,7 @@ function liveDraw(){const svg=$("liveSvg");const L=LIVE.last;if(!L||!LIVE.on){sv
   svg.setAttribute("viewBox",`0 0 ${fw} ${fh}`);const P=p=>`${(p.x*sx).toFixed(1)},${(p.y*sy).toFixed(1)}`;let out="";
   const ln=L.lines||{};for(const k of ["ceiling","floor","left","right"]){const l=ln[k];if(l)out+=`<line class="wline" x1="${(l.x1*sx).toFixed(1)}" y1="${(l.y1*sy).toFixed(1)}" x2="${(l.x2*sx).toFixed(1)}" y2="${(l.y2*sy).toFixed(1)}"/>`;}
   if(L.quad){out+=`<polygon class="wquad" points="${L.quad.map(P).join(" ")}"/>`;for(const p of L.quad)out+=`<circle class="wcorner" cx="${(p.x*sx).toFixed(1)}" cy="${(p.y*sy).toFixed(1)}" r="7"/>`;}
+  if(L.notch){out+=`<polygon class="notch" points="${L.notch.quad.map(P).join(" ")}"/>`;const c=L.notch.quad.reduce((m,p)=>({x:m.x+p.x/4,y:m.y+p.y/4}),{x:0,y:0});out+=`<text x="${(c.x*sx).toFixed(1)}" y="${(c.y*sy+4).toFixed(1)}" text-anchor="middle">Poutre ?</text>`;}
   if(L.ref){out+=`<polygon class="ref${L.refBad?" bad":""}" points="${L.ref.quad.map(P).join(" ")}"/>`;const top=L.ref.quad.reduce((m,p)=>Math.min(m,p.y),1e9)*sy;const cx=L.ref.quad.reduce((m,p)=>m+p.x,0)/4*sx;out+=`<text x="${cx.toFixed(1)}" y="${Math.max(12,top-8).toFixed(1)}" text-anchor="middle">${L.ref.kind==="mire"?"Mire":"A4"}</text>`;}
   svg.innerHTML=out;}
 // Indice pour l'analyse de la photo : coordonnées normalisées du dernier résultat en direct (le cadre vidéo peut différer de la photo :
@@ -1164,7 +1173,11 @@ function rectifyView(){const sv=S.survey,c=$("rectCanvas");if(!sv||!(sv.widthCm>
   c.width=outW;c.height=outH;const x=c.getContext("2d");const id=x.createImageData(outW,outH),d=id.data,n=outW*outH;const gray=new Uint8ClampedArray(n);
   for(let i=0,j=0;i<n;i++,j+=4){d[j]=R.data[i];d[j+1]=G.data[i];d[j+2]=B.data[i];d[j+3]=255;gray[i]=(R.data[i]*299+G.data[i]*587+B.data[i]*114+500)/1000;}
   x.putImageData(id,0,0);S.rect={w:outW,h:outH,s};
-  if(!S.opProposed){const props=WSMeasure.proposeOpenings({width:outW,height:outH,data:gray},s,sv)||[];S.openings=props.map(fromV2);S.opProposed=true;S.survey.openings=S.openings.map(toV2);renderOpenings();refreshStatus();}
+  if(!S.opProposed){const rectG={width:outW,height:outH,data:gray};const props=WSMeasure.proposeOpenings(rectG,s,sv)||[];S.openings=props.map(fromV2);
+    // Décrochements au plafond (poutre, retombée) : proposés comme zones exclues à confirmer — profondeur 8 à 45 % de la hauteur, portée ≥ 25 % de la largeur
+    if(!S.survey.heightIncomplete&&!S.survey.heightCompleted){const notches=WSMeasure.proposeCeilingNotches(rectG,{minDepthPx:Math.max(6,8*s),maxDepthPx:Math.round(outH*0.45),minSpanPx:Math.round(outW*0.25),maxGapPx:Math.round(5*s)})||[];
+      notches.filter(nz=>nz.confidence>=0.55).forEach((nz,i)=>S.openings.push({id:"beam"+i,t:"excluded",x:Math.round(nz.x/s*10)/10,y:0,w:Math.round(nz.w/s*10)/10,h:Math.round(nz.h/s*10)/10,conf:nz.confidence,src:"auto",note:"Poutre ou retombée au plafond ? À confirmer."}));}
+    S.opProposed=true;S.survey.openings=S.openings.map(toV2);renderOpenings();refreshStatus();}
   layoutRectOps();}
 // Ouvertures sur la vue de face : rectangles déplaçables (corps) et redimensionnables (poignées haut-gauche / bas-droite), ajout en deux taps
 const rectBox=$("rectBox");let opSel=null,adding=null,opDrag=null;
@@ -1184,7 +1197,7 @@ window.addEventListener("pointermove",e=>{if(!opDrag)return;const sv=S.survey,o=
 window.addEventListener("pointerup",()=>{if(!opDrag)return;opDrag=null;openingsChanged();});
 function openingsChanged(){if(S.survey)S.survey.openings=S.openings.map(toV2);renderOpenings();layoutRectOps();refreshStatus();}
 $("addOpening").onclick=()=>{if(!S.rect){S.openings.push({id:"u"+Date.now(),t:"window",x:50,y:20,w:120,h:140,conf:1,src:"user"});openingsChanged();toast("Ouverture ajoutée : ajustez ses cotes");return;}adding=null;rectBox.classList.toggle("adding");layoutRectOps();if(rectBox.classList.contains("adding"))rectBox.scrollIntoView({block:"center",behavior:"smooth"});};
-function renderOpenings(){const box=$("openings");box.innerHTML="";S.openings.forEach((o,i)=>{const d=document.createElement("div");d.className="opening";d.innerHTML=`<label class="field">Type<select data-i="${i}" data-k="t">${Object.entries(KIND_LBL).filter(([k])=>k!=="niche"||o.t==="niche").map(([k,v])=>`<option value="${k}"${o.t===k?" selected":""}>${v}</option>`).join("")}</select></label><label class="field">Largeur<input type="number" inputmode="numeric" data-i="${i}" data-k="w" value="${o.w}"></label><label class="field">Hauteur<input type="number" inputmode="numeric" data-i="${i}" data-k="h" value="${o.h}"></label><button class="iconbtn" type="button" data-del="${i}" aria-label="Supprimer cette ouverture">${ICON("close")}</button>`;box.appendChild(d);});
+function renderOpenings(){const box=$("openings");box.innerHTML="";S.openings.forEach((o,i)=>{const d=document.createElement("div");d.className="opening";d.innerHTML=`<label class="field">Type<select data-i="${i}" data-k="t">${Object.entries(KIND_LBL).filter(([k])=>k!=="niche"||o.t==="niche").map(([k,v])=>`<option value="${k}"${o.t===k?" selected":""}>${v}</option>`).join("")}</select></label><label class="field">Largeur<input type="number" inputmode="numeric" data-i="${i}" data-k="w" value="${o.w}"></label><label class="field">Hauteur<input type="number" inputmode="numeric" data-i="${i}" data-k="h" value="${o.h}"></label><button class="iconbtn" type="button" data-del="${i}" aria-label="Supprimer cette ouverture">${ICON("close")}</button>`;if(o.note)d.insertAdjacentHTML("beforeend",`<p class="foot opnote">${o.note}</p>`);box.appendChild(d);});
   box.querySelectorAll("input,select").forEach(el=>el.addEventListener("input",e=>{const o=S.openings[+e.target.dataset.i];const k=e.target.dataset.k;o[k]=k==="t"?e.target.value:Math.max(0,Number(e.target.value)||0);o.src="user";if(S.survey)S.survey.openings=S.openings.map(toV2);layoutRectOps();refreshStatus();}));box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{S.openings.splice(+b.dataset.del,1);opSel=null;openingsChanged();});}
 // Plinthes : bascule avec / sans ; hauteur mesurée sur la photo (tap sur le haut de la plinthe) ou saisie — jamais de valeur par défaut
 $("bbSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{const on=b.dataset.bb==="1";S.bb.enabled=on;$("bbSeg").querySelectorAll("button").forEach(x=>x.classList.toggle("sel",x===b));$("bbBox").style.display=on?"block":"none";$("modeBb").disabled=!on;if(!on&&S.stageMode==="baseboard")setStageMode("wall");computeMeasure();refreshStatus();});

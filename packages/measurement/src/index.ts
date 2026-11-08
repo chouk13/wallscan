@@ -20,5 +20,6 @@ export * from "./rectify.js";
 export * from "./warp.js";
 export * from "./baseboard.js";
 export * from "./openings.js";
+export * from "./notches.js";
 export * from "./bounds.js";
 export * from "./pipeline.js";
