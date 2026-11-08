@@ -681,7 +681,6 @@
     <div class="vizbtns">
       <button class="btn" id="backA" type="button"><svg class="ic"><use href="#i-back"/></svg>Mesure</button>
       <button class="btn" id="toggleStrips" type="button" aria-pressed="false"><svg class="ic"><use href="#i-strips"/></svg>Afficher les lés</button>
-      <button class="btn" id="vizFull" type="button" aria-pressed="false"><svg class="ic"><use href="#i-expand"/></svg>Ouvrir en grand</button>
       <button class="btn primary" id="validateV" type="button">Choisir ce papier →</button>
     </div>
     <button class="rolltab" id="rollTab" type="button" aria-expanded="true" aria-controls="roulette" aria-label="Masquer ou afficher les échantillons"><svg class="ic"><use href="#i-chev-r"/></svg><span>Échantillons</span></button>
@@ -890,7 +889,7 @@ const fmtDims=p=>isPano(p)?`Lés de ${p.w} cm, hauteur sur mesure`:`${p.w} cm ×
 const fmtMatch=p=>isPano(p)?"Décor panoramique":p.rep?"Raccord "+p.rep+" cm"+(p.match==="half_drop"?", sauté":""):"Sans raccord";
 const priceM2=p=>isPano(p)?p.price:Math.round(p.price/((p.w/100)*(p.l/100)));
 function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");window.scrollTo(0,0);if(id!=="viz")$(id).querySelectorAll(".scroll").forEach(el=>{el.scrollTop=0;});if(id==="analyze")setTimeout(()=>{layoutA();layoutRectOps();},30);if(id==="viz")setTimeout(renderViz,30);if(id==="shoot"||id==="camera")startLevel();else stopLevel();
-  if(id==="home")startHomePreview();else if(id!=="camera")stopCamera();if(id!=="viz"&&IMM)setImmersive(false);}
+  if(id==="home")startHomePreview();else if(id!=="camera")stopCamera();if(id==="viz"&&!IMM)setImmersive(true);else if(id!=="viz"&&IMM)setImmersive(false);}
 $("toMenu").onclick=()=>show("menu");["fabHome","fabA","fabQ","fabP","fabR","menuTop"].forEach(id=>$(id).onclick=()=>show("menu"));$("fabM").onclick=()=>show("home");$("menuCam").onclick=()=>show("home");
 $("toPrepare").onclick=()=>show("prepare");$("prepBack").onclick=()=>show("home");$("toShoot").onclick=()=>openCamera();$("shootBack").onclick=()=>show("prepare");$("backShoot").onclick=()=>{if(camOK())openCamera();else show("shoot");};$("backVerify").onclick=()=>show("analyze");$("toResult").onclick=()=>{updateResult();show("result");};$("backA").onclick=()=>show("result");$("backV").onclick=()=>show("viz");
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove("show"),1900);}
@@ -1225,17 +1224,17 @@ function renderViz(){const f=fitRect();if(!f||!S.quad||!(S.w>0))return;const fit
   else st.style.backgroundImage="none";
   $("vizName").textContent=`${p.name} ${p.color}, ${p.brand}`;$("vizRolls").textContent=plan.error?"Calepinage à compléter":isPano(p)?`${plan.strips.length} lés, ${fq(plan.m2Decor)} m² de décor`:`${plan.strips.length} lés, ${plan.rollCount} rouleau${plan.rollCount>1?"x":""}`;$("vizPrice").textContent=isPano(p)?`${chf(p.price)} le m²`:`${chf(p.price)} le rouleau`;}
 $("toggleStrips").onclick=()=>{showStrips=!showStrips;renderViz();};
-// Grand écran : photo plein cadre (plein écran du navigateur quand il l'autorise), éventail en surimpression escamotable
+// Rendu = grand écran : photo plein cadre (plein écran du navigateur quand il l'autorise), fond = photo floutée, éventail
+// d'échantillons en surimpression sur le bord, fermé à l'ouverture pour une première vue dégagée ; onglet pour l'ouvrir / le fermer.
 let IMM=false;
-function setImmersive(on){IMM=on;const v=$("viz");v.classList.toggle("immersive",on);v.classList.remove("roll-hidden");const tab=$("rollTab");tab.setAttribute("aria-expanded","true");tab.querySelector("use").setAttribute("href","#i-chev-r");
-  const b=$("vizFull");b.setAttribute("aria-pressed",String(on));b.innerHTML=`<svg class="ic"><use href="${on?"#i-collapse":"#i-expand"}"/></svg>${on?"Réduire":"Ouvrir en grand"}`;
+function setRoll(open){const v=$("viz");v.classList.toggle("roll-hidden",!open);const tab=$("rollTab");tab.setAttribute("aria-expanded",String(open));tab.querySelector("use").setAttribute("href",open?"#i-chev-r":"#i-chev-l");}
+function setImmersive(on){IMM=on;$("viz").classList.toggle("immersive",on);if(on)setRoll(false);
   $("vizBack").style.backgroundImage=on&&S.img?`url("${S.img.src}")`:"";
   if(on){const el=document.documentElement;if(el.requestFullscreen&&!document.fullscreenElement)el.requestFullscreen().catch(()=>{});}
   else if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
   setTimeout(renderViz,60);setTimeout(renderViz,400);}
-$("vizFull").onclick=()=>setImmersive(!IMM);
-$("rollTab").onclick=()=>{const hidden=$("viz").classList.toggle("roll-hidden");const tab=$("rollTab");tab.setAttribute("aria-expanded",String(!hidden));tab.querySelector("use").setAttribute("href",hidden?"#i-chev-l":"#i-chev-r");};
-document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&IMM)setImmersive(false);else setTimeout(renderViz,120);});
+$("rollTab").onclick=()=>setRoll($("viz").classList.contains("roll-hidden"));
+document.addEventListener("fullscreenchange",()=>setTimeout(renderViz,120));
 function buildRoulette(){const r=$("roulette");r.innerHTML=`<div class="spacer"></div>`+CATALOG.map((p,i)=>`<div class="ritem${p===S.sel?" sel":""}" data-i="${i}" role="button" tabindex="0" aria-label="${p.name}, ${p.brand}"><div class="sample"><div class="sw" style="background-image:url('${svgTile(p)}')${isPano(p)?";background-size:100% 100%":""}"></div><div class="n">${p.name}<span>${p.brand}</span></div></div></div>`).join("")+`<div class="spacer"></div>`;
   r.querySelectorAll(".ritem").forEach(el=>{el.onclick=()=>{el.scrollIntoView({block:"center",behavior:"smooth"});select(+el.dataset.i);};el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();el.click();}};});
   let t;r.addEventListener("scroll",()=>{clearTimeout(t);t=setTimeout(()=>{const mid=r.scrollTop+r.clientHeight/2;let best=null,bd=1e9;r.querySelectorAll(".ritem").forEach(el=>{const c=el.offsetTop+el.offsetHeight/2;const d=Math.abs(c-mid);if(d<bd){bd=d;best=el;}});if(best)select(+best.dataset.i);},80);});
